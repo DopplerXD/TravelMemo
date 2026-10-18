@@ -6,3 +6,9 @@
 .env
 **/data
 *.log
+**/.env.*
+backups
+.artifacts
+test-results
+playwright-report
+/tests

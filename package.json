@@ -9,7 +9,7 @@
     "install:all": "npm ci --prefix server && npm ci --prefix web",
     "dev": "node scripts/dev.mjs",
     "build": "npm run build --prefix web",
-    "test": "npm test --prefix server",
+    "test": "npm test --prefix server && node --test tests/map-style.test.mjs",
     "check": "npm test && npm run build",
     "start": "npm start --prefix server",
     "test:e2e": "playwright test"

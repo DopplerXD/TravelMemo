@@ -28,14 +28,24 @@ test('公开地图、多次到访、在线保存与照片浏览', async ({ page,
   await page.getByRole('button', { name: new RegExp(`${prefix}又到南京`) }).click();
   await expect(page.getByRole('region', { name: '简记详情' })).toContainText('在旧街巷里慢慢走');
   expect((await cities).ok()).toBeTruthy();
+  const visitedCity = page.locator('.map-label--city.map-label--visited').filter({ hasText: '南京市' });
+  await expect(visitedCity).toHaveCount(1);
   await page.getByRole('button', { name: '关闭简记详情' }).click();
+  if (prefix === 'mobile') await page.getByRole('button', { name: '地图', exact: true }).click();
+  for (let i = 0; i < 3; i++) {
+    await page.getByRole('button', { name: '缩小地图', exact: true }).click();
+    await page.waitForTimeout(350);
+  }
+  await expect(visitedCity).toBeVisible();
+  await page.screenshot({ path: `.artifacts/${prefix}-city.png`, fullPage: true });
+  if (prefix === 'mobile') await page.getByRole('button', { name: '时间线', exact: true }).click();
   await page.getByLabel('按年份筛选').selectOption('2025');
   await expect(page.getByRole('button', { name: new RegExp(`${prefix}去年的南京`) })).toBeVisible();
   await expect(page.getByRole('button', { name: new RegExp(`${prefix}又到南京`) })).toHaveCount(0);
   await page.getByLabel('按年份筛选').selectOption('all');
   await page.getByLabel('按旅行筛选').selectOption(trip2.id);
   await expect(page.getByRole('button', { name: new RegExp(`${prefix}又到南京`) })).toBeVisible();
-  await page.getByRole('button', { name: '回到全国视图', exact: true }).click();
+  await page.getByRole('button', { name: '全国', exact: true }).click();
   await page.waitForTimeout(1000);
   await page.screenshot({ path: `.artifacts/${prefix}-map.png`, fullPage: true });
 
@@ -131,4 +141,21 @@ test('运行时底图配置可加载且无地图表达式错误', async ({ page 
   await expect.poll(() => tileRequests).toBeGreaterThan(0);
   await page.waitForTimeout(500);
   expect(errors.filter(error => !error.includes('favicon'))).toEqual([]);
+});
+
+test('全国默认视野保留边缘省份', async ({ page }, info) => {
+  await page.goto('/');
+  const names = ['新疆维吾尔自治区', '西藏自治区', '黑龙江省', '海南省', '台湾省'];
+  await expect(page.locator('.map-label--province')).toHaveCount(34, { timeout: 15000 });
+  await expect.poll(async () => {
+    const covered: string[] = [];
+    const viewport = page.viewportSize()!;
+    const panel = await page.locator('.timeline-panel').boundingBox();
+    for (const name of names) {
+      const box = await page.locator('.map-label--province').filter({ hasText: name }).boundingBox();
+      const left = info.project.name === 'desktop' && panel ? panel.x + panel.width + 4 : 0;
+      if (!box || box.x < left || box.x + box.width > viewport.width || box.y < 65 || box.y + box.height > viewport.height - 100) covered.push(name);
+    }
+    return covered;
+  }, { timeout: 5000 }).toEqual([]);
 });

@@ -16,7 +16,7 @@ npm run dev
 
 浏览 `http://127.0.0.1:5173`，管理入口 `/admin`。初始内容为空。先建立地点和旅行分组，再添加简记；一个地点可复用于多次旅行。生产运行前执行 `npm run build`，然后 `npm start`，访问 `http://127.0.0.1:3001`。开发和生产均使用同一个数据目录，勿将测试内容写入真实数据。
 
-`npm run check` 执行后端集成测试与前端类型检查、生产构建；安装 Google Chrome 后，`npm run test:e2e` 验证电脑和手机的实际浏览、编辑、上传及地图配置，测试使用独立临时数据库。接口见 [docs/API.md](docs/API.md)，需求见 [PRD.md](PRD.md)。
+`npm run check` 执行后端集成测试、地图样式校验和前端类型检查、生产构建；安装 Google Chrome 后，`npm run test:e2e` 验证电脑和手机的实际浏览、编辑、上传及地图配置，测试使用独立临时数据库。接口见 [docs/API.md](docs/API.md)，需求见 [PRD.md](PRD.md)。
 
 ## 云服务器部署
 
@@ -33,7 +33,7 @@ curl -f http://127.0.0.1:3001/api/health
 Nginx 站点核心配置：
 
 ```nginx
-client_max_body_size 20m;
+client_max_body_size 25m;
 location / {
     proxy_pass http://127.0.0.1:3001;
     proxy_set_header Host $host;
