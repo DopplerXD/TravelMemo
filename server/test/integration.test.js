@@ -146,6 +146,10 @@ test("authentication, CRUD, images, references and restart persistence", async (
     assert.equal(upload.status, 201);
     const photo = await upload.json();
     assert.equal(photo.width, 100);
+    const image = await fetch(base + photo.url, {
+      headers: { "Accept-Encoding": "gzip" },
+    });
+    assert.equal(image.headers.get("content-encoding"), null);
     assert.equal(
       (await fetch(base + `/media/${photo.id}-original.png`)).status,
       404,
@@ -300,6 +304,17 @@ test("SPA routes work inside hidden directories and missing media stays 404", as
   const temporaryDir = await mkdtemp(path.join(tmpdir(), "travelmemo-static-"));
   const webDir = path.join(temporaryDir, ".worktrees", "web", "dist");
   await mkdir(webDir, { recursive: true });
+  const script = "const place = '南京';\n".repeat(200);
+  const geojson = JSON.stringify({
+    type: "FeatureCollection",
+    features: Array.from({ length: 100 }, () => ({
+      type: "Feature",
+      properties: { name: "南京" },
+      geometry: { type: "Point", coordinates: [118.79, 32.06] },
+    })),
+  });
+  await writeFile(path.join(webDir, "app.js"), script);
+  await writeFile(path.join(webDir, "provinces.geojson"), geojson);
   await writeFile(
     path.join(webDir, "index.html"),
     "<!doctype html><title>TravelMemo</title>",
@@ -320,6 +335,22 @@ test("SPA routes work inside hidden directories and missing media stays 404", as
       assert.match(response.headers.get("content-type"), /text\/html/);
       assert.match(await response.text(), /TravelMemo/);
     }
+    for (const [asset, expected] of [
+      ["app.js", script],
+      ["provinces.geojson", geojson],
+    ]) {
+      const compressed = await fetch(base + "/" + asset, {
+        headers: { "Accept-Encoding": "gzip" },
+      });
+      assert.equal(compressed.status, 200);
+      assert.equal(compressed.headers.get("content-encoding"), "gzip");
+      assert.match(compressed.headers.get("vary"), /Accept-Encoding/);
+      assert.equal(await compressed.text(), expected);
+    }
+    const privateSession = await fetch(base + "/api/session", {
+      headers: { "Accept-Encoding": "gzip" },
+    });
+    assert.equal(privateSession.headers.get("cache-control"), "no-store");
     const media = await fetch(
       base + "/media/00000000-0000-0000-0000-000000000000.webp",
     );

@@ -1,4 +1,5 @@
 import express from "express";
+import compression from "compression";
 import multer from "multer";
 import sharp from "sharp";
 import { DatabaseSync } from "node:sqlite";
@@ -58,6 +59,7 @@ export function createApp(options = {}) {
   const passwordHash = scryptSync(password, salt, 64);
   const app = express();
   app.disable("x-powered-by");
+  app.use(compression({ level: 4, threshold: 1024 }));
   if (process.env.TRUST_PROXY === "1") app.set("trust proxy", 1);
   app.use((req, res, next) => {
     res.set({
