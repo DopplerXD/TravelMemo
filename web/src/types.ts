@@ -54,4 +54,15 @@ export interface SessionInfo {
   csrfToken?: string;
 }
 
+/**
+ * 运行时底图配置，来自 GET /api/map-config。
+ * tiles / overlayTiles 为空表示未配置街道底图，此时只绘制本地行政区。
+ */
+export interface MapConfig {
+  tiles: string[];
+  overlayTiles: string[];
+  attribution: string;
+  maxZoom: number;
+}
+
 export type AdminTab = "entries" | "trips" | "places";
