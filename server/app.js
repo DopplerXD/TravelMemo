@@ -390,6 +390,9 @@ export function createApp(options = {}) {
         res.set("Content-Security-Policy", "default-src 'none'; sandbox"),
     }),
   );
+  app.use("/media", (req, res) =>
+    res.status(404).json({ error: "照片不存在" }),
+  );
   app.use("/api", (req, res) => res.status(404).json({ error: "接口不存在" }));
   const webDir =
     options.webDir ??
@@ -398,7 +401,8 @@ export function createApp(options = {}) {
   app.use(express.static(webDir));
   app.get("/{*path}", (req, res, next) =>
     res.sendFile(
-      path.join(webDir, "index.html"),
+      "index.html",
+      { root: path.resolve(webDir) },
       (error) => error && next(error),
     ),
   );
