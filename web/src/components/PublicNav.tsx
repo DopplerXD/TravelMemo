@@ -13,9 +13,11 @@ const TABS: Array<{ view: Exclude<PublicView, "map">; label: string; path: strin
 export function PublicNav({
   activeView,
   detailId,
+  onReturnMap,
 }: {
   activeView: PublicView;
   detailId: string | null;
+  onReturnMap: () => void;
 }) {
   const selectTab = (view: Exclude<PublicView, "map">, path: string): void => {
     if (activeView !== view) {
@@ -32,7 +34,7 @@ export function PublicNav({
       <button
         aria-label="返回地图"
         className="public-nav__brand"
-        onClick={() => navigate("/")}
+        onClick={onReturnMap}
         type="button"
       >
         <BrandMark className="public-nav__mark" />

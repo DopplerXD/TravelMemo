@@ -22,30 +22,29 @@ test('公开地图、多次到访、在线保存与照片浏览', async ({ page,
   const older = await create('entries', { title: `${prefix}去年的南京`, date: '2025-05-01', placeId: place.id, tripId: trip1.id, body: '沿着秦淮河散步', photos: [] });
   const newer = await create('entries', { title: `${prefix}又到南京`, date: '2026-10-18', placeId: place.id, tripId: trip2.id, body: '在旧街巷里慢慢走', photos: [] });
   const cities = page.waitForResponse(response => response.url().endsWith('/geo/cities/320000.json'));
-  await page.goto('/');
+  await page.goto('/timeline');
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
-  if (prefix === 'mobile') await page.getByRole('button', { name: '时间线', exact: true }).click();
   await page.getByRole('button', { name: new RegExp(`${prefix}又到南京`) }).click();
   await expect(page.getByRole('region', { name: '简记详情' })).toContainText('在旧街巷里慢慢走');
   expect((await cities).ok()).toBeTruthy();
   const visitedCity = page.locator('.map-label--city.map-label--visited').filter({ hasText: '南京市' });
   await expect(visitedCity).toHaveCount(1);
   await page.getByRole('button', { name: '关闭简记详情' }).click();
-  if (prefix === 'mobile') await page.getByRole('button', { name: '地图', exact: true }).click();
+  await page.getByRole('navigation', { name: '主导航' }).getByRole('button', { name: 'Timeline', exact: true }).click();
   for (let i = 0; i < 3; i++) {
     await page.getByRole('button', { name: '缩小地图', exact: true }).click();
     await page.waitForTimeout(350);
   }
   await expect(visitedCity).toBeVisible();
   await page.screenshot({ path: `.artifacts/${prefix}-city.png`, fullPage: true });
-  if (prefix === 'mobile') await page.getByRole('button', { name: '时间线', exact: true }).click();
+  await page.getByRole('navigation', { name: '主导航' }).getByRole('button', { name: 'Timeline', exact: true }).click();
   await page.getByLabel('按年份筛选').selectOption('2025');
   await expect(page.getByRole('button', { name: new RegExp(`${prefix}去年的南京`) })).toBeVisible();
   await expect(page.getByRole('button', { name: new RegExp(`${prefix}又到南京`) })).toHaveCount(0);
   await page.getByLabel('按年份筛选').selectOption('all');
   await page.getByLabel('按旅行筛选').selectOption(trip2.id);
   await expect(page.getByRole('button', { name: new RegExp(`${prefix}又到南京`) })).toBeVisible();
-  await page.getByRole('button', { name: '全国', exact: true }).click();
+  await page.getByRole('button', { name: '返回地图', exact: true }).click();
   await page.waitForTimeout(1000);
   await page.screenshot({ path: `.artifacts/${prefix}-map.png`, fullPage: true });
 
@@ -69,8 +68,7 @@ test('公开地图、多次到访、在线保存与照片浏览', async ({ page,
   expect((await save).status()).toBe(201);
   await expect(dialog).toHaveCount(0);
   await page.screenshot({ path: `.artifacts/${prefix}-admin.png`, fullPage: true });
-  await page.goto('/');
-  if (prefix === 'mobile') await page.getByRole('button', { name: '时间线', exact: true }).click();
+  await page.goto('/timeline');
   await page.getByRole('button', { name: new RegExp(`${prefix}手机新记录`) }).click();
   await expect(page.getByRole('region', { name: '简记详情' })).toContainText('保存后即可公开浏览');
   await page.getByRole('button', { name: '查看照片：南京旅途' }).click();
@@ -150,7 +148,7 @@ test('全国默认视野保留边缘省份', async ({ page }, info) => {
   await expect.poll(async () => {
     const covered: string[] = [];
     const viewport = page.viewportSize()!;
-    const panel = await page.locator('.timeline-panel').boundingBox();
+    const panel = await page.locator('.timeline-panel').count() ? await page.locator('.timeline-panel').boundingBox() : null;
     for (const name of names) {
       const box = await page.locator('.map-label--province').filter({ hasText: name }).boundingBox();
       const left = info.project.name === 'desktop' && panel ? panel.x + panel.width + 4 : 0;

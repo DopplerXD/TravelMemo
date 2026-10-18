@@ -16,7 +16,11 @@ npm run dev
 
 浏览 `http://127.0.0.1:5173`，管理入口 `/admin`。初始内容为空。先建立地点和旅行分组，再添加简记；一个地点可复用于多次旅行。生产运行前执行 `npm run build`，然后 `npm start`，访问 `http://127.0.0.1:8015`。开发和生产均使用同一个数据目录，勿将测试内容写入真实数据。
 
-`npm run check` 执行后端集成测试、地图样式校验和前端类型检查、生产构建；安装 Google Chrome 后，`npm run test:e2e` 验证电脑和手机的实际浏览、编辑、上传及地图配置，测试使用独立临时数据库。接口见 [docs/API.md](docs/API.md)，需求见 [PRD.md](PRD.md)。
+`npm run check` 执行后端集成测试、地图样式校验和前端类型检查、生产构建；安装 Google Chrome 后，`npm run test:e2e` 验证电脑和手机的实际浏览、编辑、上传及地图配置，测试使用独立临时数据库。
+
+展示页提供 `/trips`、`/places`、`/timeline`、`/stats`，品牌入口返回全国地图。亮暗主题首次跟随系统，手动切换后在浏览器中记忆，管理页共用主题设置。
+
+接口见 [docs/API.md](docs/API.md)，需求见 [PRD.md](PRD.md)。
 
 ## 云服务器部署
 
@@ -68,4 +72,4 @@ sh scripts/restore.sh backups/travelmemo-YYYYMMDD-HHMMSS.tar.gz
 
 ## 开发协作
 
-`main` 由主控负责集成、部署和验收；`feat/backend` 由 6.1-sol 负责 `server/`，`feat/frontend` 通过 pi CLI 的 deepseek-flash 负责 `web/`。两个分支使用独立工作树，按接口约定分别提交，再由主控合并。前端展示页参考 TravelMap，管理页结合其配色与 Apple Design 的反馈、材质、排版和减少动态效果支持。
+`main` 由主控负责集成、部署和验收；`feat/backend` 由 6.1-sol 负责 `server/`，`feat/frontend` 通过 pi CLI 的 deepseek-flash 负责 `web/`。各分支使用独立工作树，按接口约定分别提交，再由主控合并；导航与主题改版由 pi CLI 在 `feat/travelmap-navigation` 完成。前端展示页参考 TravelMap，管理页结合其配色与 Apple Design 的反馈、材质、排版和减少动态效果支持。

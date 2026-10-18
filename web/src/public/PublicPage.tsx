@@ -254,7 +254,14 @@ export function PublicPage({ route }: { route: PublicRoute }) {
         panelLayout={panelLayout}
       />
 
-      <PublicNav activeView={route.view} detailId={detailId} />
+      <PublicNav
+        activeView={route.view}
+        detailId={detailId}
+        onReturnMap={() => {
+          navigate("/");
+          window.requestAnimationFrame(() => mapRef.current?.resetView());
+        }}
+      />
 
       {route.view === "trips" ? (
         selectedTrip ? (

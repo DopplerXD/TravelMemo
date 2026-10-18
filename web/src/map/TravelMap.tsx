@@ -1079,6 +1079,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
         focusPlace(place: Place) {
           const map = mapRef.current;
           if (!map) return;
+          userMovedRef.current = true;
           loadProvince(place.provinceCode);
           const isMobile = window.matchMedia("(max-width: 759px)").matches;
           map.flyTo({
@@ -1097,6 +1098,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
             (city) => Number.isFinite(city.lng) && Number.isFinite(city.lat),
           );
           if (points.length === 0) return;
+          userMovedRef.current = true;
           if (points.length === 1) {
             const city = points[0];
             if (!city) return;
@@ -1169,7 +1171,10 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
           <button
             aria-label="放大地图"
             className="map-control"
-            onClick={() => mapRef.current?.zoomIn({ duration: mapDuration(280) })}
+            onClick={() => {
+              userMovedRef.current = true;
+              mapRef.current?.zoomIn({ duration: mapDuration(280) });
+            }}
             title="放大"
             type="button"
           >
@@ -1178,7 +1183,10 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
           <button
             aria-label="缩小地图"
             className="map-control"
-            onClick={() => mapRef.current?.zoomOut({ duration: mapDuration(280) })}
+            onClick={() => {
+              userMovedRef.current = true;
+              mapRef.current?.zoomOut({ duration: mapDuration(280) });
+            }}
             title="缩小"
             type="button"
           >
