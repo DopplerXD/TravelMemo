@@ -32,7 +32,7 @@ docker compose ps
 curl -f http://127.0.0.1:8015/api/health
 ```
 
-应用仅监听宿主机回环地址 `127.0.0.1:8015`，通过已有 Nginx/Caddy 反向代理提供域名和 HTTPS。HTTPS 部署设置 `COOKIE_SECURE=true`；可信反向代理恰好一层时设置 `TRUST_PROXY=1`，代理需覆盖 `X-Forwarded-Proto` 并传递正确客户端 IP。首次本地 HTTP 调试保持两项为 false。不要将管理密码提交到仓库。
+应用默认以无域名直连方式监听 `0.0.0.0:8015`，访问 `http://服务器IP:8015`，云防火墙放行 8015/tcp。该模式为明文 HTTP，仅适合个人使用且密码足够强，并建议配合 IP 白名单或 Tailscale 等私有网络。若改用 Nginx/Caddy 反向代理，把 `compose.yaml` 的端口改回 `127.0.0.1:8015:8015`，并设置 `COOKIE_SECURE=true`；可信反向代理恰好一层时设置 `TRUST_PROXY=1`，代理需覆盖 `X-Forwarded-Proto` 并传递正确客户端 IP。首次本地 HTTP 调试保持两项为 false。不要将管理密码提交到仓库。
 
 Nginx 站点核心配置：
 

@@ -3,8 +3,10 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    # 无域名直连模式：监听所有网卡，用 http://服务器IP:8015 访问。
+    # 若改用 Nginx/Caddy 反代，请改回 "127.0.0.1:8015:8015" 并设置 COOKIE_SECURE=true、TRUST_PROXY=1。
     ports:
-      - "127.0.0.1:8015:8015"
+      - "8015:8015"
     volumes:
       - travelmemo-data:/app/data
     logging:
