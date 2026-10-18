@@ -1133,6 +1133,15 @@
     display: none;
   }
 
+  /* The timeline sheet owns the screen; map-only controls must not float on it. */
+  .public-page--sheet-open .map-controls,
+  .public-page--sheet-open .map-legend,
+  .public-page--sheet-open .map-status,
+  .public-page--sheet-open .map-loading,
+  .public-page--sheet-open .map-data-error {
+    display: none;
+  }
+
   .mobile-switch {
     align-items: center;
     background: rgba(255, 255, 255, 0.78);

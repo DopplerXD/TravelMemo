@@ -38,18 +38,19 @@ import { ErrorState } from "../components/States";
 import { Spinner } from "../components/Spinner";
 import { ResetIcon } from "../icons";
 import {
-  CHINA_MAX_BOUNDS,
+  CHINA_PAN_BOUNDS,
   CHINA_VIEW_BOUNDS,
+  CHINA_ZOOM_OUT_STEPS,
   LOCAL_STYLE,
   MAP_STYLE_URL,
 } from "./mapStyle";
 import { applyMapConfig, basemapConfigured, BASEMAP_LABEL_SOURCE, BASEMAP_SOURCE, releaseMapConfig } from "./basemap";
 import { cityFillOpacity, provinceFillOpacity } from "./paint";
+import { buildOverlayLayers, OVERLAY_SOURCES } from "./layers";
 import { useMapConfig } from "../lib/useMapConfig";
 import { mapDuration } from "../lib/motion";
 
 const CITY_LOAD_ZOOM = 5;
-const CITY_FILL_MIN_ZOOM = 4.9;
 const CITY_LABEL_VISITED_ZOOM = 5.2;
 const CITY_LABEL_ALL_ZOOM = 6.4;
 const SELECTED_ZOOM = 12.4;
@@ -85,7 +86,8 @@ export interface TravelMapProps {
   visitedCityCodes: Set<string>;
   selectedPlace: Place | null;
   activeTrip: Trip | null;
-  fitPadding?: { top: number; right: number; bottom: number; left: number };
+  /** Right-hand detail panel is open, so the national fit must leave room for it. */
+  detailOpen?: boolean;
   onSelectPlace: (placeId: string) => void;
   onClearSelection: () => void;
 }
@@ -212,185 +214,10 @@ function ensureLayer(map: MapLibreMap, layer: LayerSpecification): void {
 }
 
 function addOverlayLayers(map: MapLibreMap, withBasemap: boolean): void {
-  if (!map.getSource("provinces")) {
-    map.addSource("provinces", {
-      type: "geojson",
-      data: { type: "FeatureCollection", features: [] },
-      promoteId: "adcode",
-    });
+  for (const [id, spec] of Object.entries(OVERLAY_SOURCES)) {
+    if (!map.getSource(id)) map.addSource(id, spec);
   }
-  if (!map.getSource("cities")) {
-    map.addSource("cities", {
-      type: "geojson",
-      data: { type: "FeatureCollection", features: [] },
-      promoteId: "adcode",
-    });
-  }
-  if (!map.getSource("route")) {
-    map.addSource("route", {
-      type: "geojson",
-      data: { type: "FeatureCollection", features: [] },
-    });
-  }
-  if (!map.getSource("places")) {
-    map.addSource("places", {
-      type: "geojson",
-      data: { type: "FeatureCollection", features: [] },
-      cluster: true,
-      clusterRadius: 46,
-      clusterMaxZoom: 12,
-      clusterProperties: {
-        entries: ["+", ["get", "entryCount"]],
-      },
-    });
-  }
-
-  ensureLayer(map, {
-    id: "province-fill",
-    type: "fill",
-    source: "provinces",
-    paint: {
-      "fill-color": [
-        "case",
-        ["boolean", ["feature-state", "hover"], false],
-        "#ffeaf0",
-        ["boolean", ["get", "_visited"], false],
-        "#ffcdd2",
-        "#f8f7f5",
-      ],
-      "fill-opacity": provinceFillOpacity(withBasemap),
-    },
-  });
-  ensureLayer(map, {
-    id: "province-line",
-    type: "line",
-    source: "provinces",
-    paint: {
-      "line-color": [
-        "case",
-        ["boolean", ["get", "_visited"], false],
-        "#e9a8ba",
-        "#c6d0dd",
-      ],
-      "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.7, 7, 1.3],
-      "line-opacity": 0.9,
-    },
-  });
-  ensureLayer(map, {
-    id: "city-fill",
-    type: "fill",
-    source: "cities",
-    minzoom: CITY_FILL_MIN_ZOOM,
-    paint: {
-      "fill-color": [
-        "case",
-        ["boolean", ["get", "_visited"], false],
-        "#f38caf",
-        ["boolean", ["feature-state", "hover"], false],
-        "#f7b5cc",
-        "#f38caf",
-      ],
-      "fill-opacity": cityFillOpacity(withBasemap),
-    },
-  });
-  ensureLayer(map, {
-    id: "city-line",
-    type: "line",
-    source: "cities",
-    minzoom: CITY_FILL_MIN_ZOOM,
-    paint: {
-      "line-color": "#bfcbd9",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.45, 9, 0.9],
-      "line-opacity": 0.72,
-    },
-  });
-  ensureLayer(map, {
-    id: "route-halo",
-    type: "line",
-    source: "route",
-    filter: ["==", ["geometry-type"], "LineString"],
-    paint: {
-      "line-color": "#ffffff",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 4, 3.5, 10, 7],
-      "line-opacity": 0.65,
-    },
-  });
-  ensureLayer(map, {
-    id: "route-line",
-    type: "line",
-    source: "route",
-    filter: ["==", ["geometry-type"], "LineString"],
-    paint: {
-      "line-color": "#1877f2",
-      "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1.6, 10, 3],
-      "line-dasharray": [1.6, 1.2],
-      "line-opacity": 0.9,
-    },
-  });
-  ensureLayer(map, {
-    id: "route-stop",
-    type: "circle",
-    source: "route",
-    filter: ["==", ["geometry-type"], "Point"],
-    paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 5, 10, 7],
-      "circle-color": "#ffffff",
-      "circle-stroke-color": "#1877f2",
-      "circle-stroke-width": 2.4,
-    },
-  });
-  ensureLayer(map, {
-    id: "place-halo",
-    type: "circle",
-    source: "places",
-    filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "_selected"], true]],
-    paint: {
-      "circle-radius": 15,
-      "circle-color": "#f38caf",
-      "circle-opacity": 0.24,
-    },
-  });
-  ensureLayer(map, {
-    id: "places-points",
-    type: "circle",
-    source: "places",
-    filter: ["!", ["has", "point_count"]],
-    paint: {
-      "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 4.2, 10, 6.4],
-      "circle-color": [
-        "case",
-        ["==", ["get", "_selected"], true],
-        "#f38caf",
-        "#1877f2",
-      ],
-      "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 2,
-      "circle-opacity": 1,
-    },
-  });
-  ensureLayer(map, {
-    id: "places-clusters",
-    type: "circle",
-    source: "places",
-    filter: ["has", "point_count"],
-    paint: {
-      "circle-color": "#1877f2",
-      "circle-opacity": 0.92,
-      "circle-stroke-color": "#ffffff",
-      "circle-stroke-width": 2.4,
-      "circle-radius": [
-        "step",
-        ["get", "point_count"],
-        14,
-        4,
-        18,
-        10,
-        23,
-        25,
-        28,
-      ],
-    },
-  });
+  for (const layer of buildOverlayLayers(withBasemap)) ensureLayer(map, layer);
 }
 
 function syncFillOpacity(map: MapLibreMap, withBasemap: boolean): void {
@@ -439,6 +266,24 @@ function createClusterBadge(count: number): HTMLDivElement {
   return element;
 }
 
+type MapPadding = { top: number; right: number; bottom: number; left: number };
+
+/**
+ * Padding for the national fit, measured from the live viewport so the
+ * timeline, detail panel, top bar and mobile switch never cover the country.
+ */
+function computeFitPadding(detailOpen: boolean): MapPadding {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  if (width <= 759) {
+    return { top: 84, right: 20, bottom: height >= 760 ? 170 : 150, left: 20 };
+  }
+  if (width <= 1120) {
+    return { top: 92, right: detailOpen ? 366 : 40, bottom: 76, left: 352 };
+  }
+  return { top: 96, right: detailOpen ? 428 : 48, bottom: 84, left: 392 };
+}
+
 export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
   function TravelMap(
     {
@@ -448,7 +293,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       visitedCityCodes,
       selectedPlace,
       activeTrip,
-      fitPadding,
+      detailOpen = false,
       onSelectPlace,
       onClearSelection,
     },
@@ -473,8 +318,9 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
     const failedCityRef = useRef<Set<string>>(new Set());
     const initialFitRef = useRef(false);
     const styleFallbackRef = useRef(false);
-    const fitPaddingRef = useRef(fitPadding);
-    fitPaddingRef.current = fitPadding;
+    const userMovedRef = useRef(false);
+    const detailOpenRef = useRef(detailOpen);
+    detailOpenRef.current = detailOpen;
 
     const [provinces, setProvinces] = useState<AdministrativeCollection | null>(null);
     const [provinceError, setProvinceError] = useState<string | null>(null);
@@ -505,11 +351,25 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
     const handlersRef = useRef({ onSelectPlace, onClearSelection });
     handlersRef.current = { onSelectPlace, onClearSelection };
 
+    /**
+     * Frames the whole country inside the area that no floating panel covers.
+     * The zoom is computed with `cameraForBounds` instead of `fitBounds` so the
+     * minimum allowed zoom can follow the padded fit; a fixed minZoom or
+     * `maxBounds` would otherwise clamp the camera and crop Xinjiang,
+     * Heilongjiang or Taiwan on small viewports.
+     */
     const fitChina = useCallback((map: MapLibreMap, duration: number) => {
-      map.fitBounds(CHINA_VIEW_BOUNDS, {
-        padding: fitPaddingRef.current ?? { top: 70, right: 60, bottom: 60, left: 60 },
-        duration: mapDuration(duration),
+      const camera = map.cameraForBounds(CHINA_VIEW_BOUNDS, {
+        padding: computeFitPadding(detailOpenRef.current),
         maxZoom: 4.9,
+      });
+      if (!camera) return;
+      const zoom = typeof camera.zoom === "number" ? camera.zoom : map.getZoom();
+      map.setMinZoom(Math.max(1.2, zoom - CHINA_ZOOM_OUT_STEPS));
+      map.easeTo({
+        center: camera.center,
+        zoom,
+        duration: mapDuration(duration),
         essential: true,
       });
     }, []);
@@ -686,9 +546,8 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
         style: useExternalStyle ? MAP_STYLE_URL : LOCAL_STYLE,
         center: [104.2, 35.6],
         zoom: 3.6,
-        minZoom: 2.8,
+        minZoom: 1.4,
         maxZoom: 17,
-        maxBounds: CHINA_MAX_BOUNDS,
         renderWorldCopies: false,
         attributionControl: useExternalStyle ? { compact: true } : false,
         dragRotate: false,
@@ -826,10 +685,30 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
         setMapZoom(map.getZoom());
         updateLabelVisibility();
       };
+      const onMoveStart = (event: { originalEvent?: unknown }): void => {
+        // Only real user gestures (drag, wheel, pinch) opt out of automatic
+        // re-fitting; programmatic flies still count as browsing too once the
+        // view has been deliberately changed.
+        if (event.originalEvent) userMovedRef.current = true;
+      };
       const onMoveEnd = (): void => {
         updateLabelVisibility();
         updateClusterBadges();
         loadVisibleCities();
+        // Keep the camera over China without a hard `maxBounds` clamp, which
+        // would force a higher zoom on small or padded viewports.
+        const center = map.getCenter();
+        const lng = Math.min(
+          CHINA_PAN_BOUNDS.east,
+          Math.max(CHINA_PAN_BOUNDS.west, center.lng),
+        );
+        const lat = Math.min(
+          CHINA_PAN_BOUNDS.north,
+          Math.max(CHINA_PAN_BOUNDS.south, center.lat),
+        );
+        if (Math.abs(lng - center.lng) > 0.02 || Math.abs(lat - center.lat) > 0.02) {
+          map.easeTo({ center: [lng, lat], duration: mapDuration(260) });
+        }
       };
       const onZoomEnd = (): void => {
         updateLabelVisibility();
@@ -992,6 +871,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       };
 
       map.on("move", onMove);
+      map.on("movestart", onMoveStart);
       map.on("moveend", onMoveEnd);
       map.on("zoomend", onZoomEnd);
       map.on("sourcedata", onSourceData);
@@ -1001,6 +881,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
 
       return () => {
         map.off("move", onMove);
+        map.off("movestart", onMoveStart);
         map.off("moveend", onMoveEnd);
         map.off("zoomend", onZoomEnd);
         map.off("sourcedata", onSourceData);
@@ -1025,6 +906,31 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       }, 180);
       return () => window.clearTimeout(timer);
     }, [mapReady, provinceData, loadVisibleCities, updateClusterBadges, updateLabelVisibility]);
+
+    useEffect(() => {
+      if (!mapReady) return;
+      let frame = 0;
+      const refit = (): void => {
+        window.cancelAnimationFrame(frame);
+        frame = window.requestAnimationFrame(() => {
+          const map = mapRef.current;
+          if (!map) return;
+          if (userMovedRef.current) {
+            // Keep the user's current view; the next reset uses fresh padding.
+            updateLabelVisibility();
+            return;
+          }
+          fitChina(map, 0);
+        });
+      };
+      window.addEventListener("resize", refit);
+      window.addEventListener("orientationchange", refit);
+      return () => {
+        window.cancelAnimationFrame(frame);
+        window.removeEventListener("resize", refit);
+        window.removeEventListener("orientationchange", refit);
+      };
+    }, [mapReady, fitChina, updateLabelVisibility]);
 
     useEffect(() => {
       const map = mapRef.current;
@@ -1137,6 +1043,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
         resetView() {
           const map = mapRef.current;
           if (!map) return;
+          userMovedRef.current = false;
           fitChina(map, 850);
           loadVisibleCities();
         },
@@ -1189,6 +1096,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
             onClick={() => {
               const map = mapRef.current;
               if (!map) return;
+              userMovedRef.current = false;
               fitChina(map, 850);
               loadVisibleCities();
             }}
