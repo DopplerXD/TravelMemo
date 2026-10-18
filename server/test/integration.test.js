@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import sharp from "sharp";
@@ -293,5 +293,41 @@ test("login limits separate clients behind the configured proxy", async () => {
     await new Promise((resolve) => server.close(resolve));
     instance.close();
     await rm(dataDir, { recursive: true, force: true });
+  }
+});
+
+test("SPA routes work inside hidden directories and missing media stays 404", async () => {
+  const temporaryDir = await mkdtemp(path.join(tmpdir(), "travelmemo-static-"));
+  const webDir = path.join(temporaryDir, ".worktrees", "web", "dist");
+  await mkdir(webDir, { recursive: true });
+  await writeFile(
+    path.join(webDir, "index.html"),
+    "<!doctype html><title>TravelMemo</title>",
+  );
+  const instance = createApp({
+    dataDir: path.join(temporaryDir, "data"),
+    webDir,
+    username: "admin",
+    password: "a-long-test-password",
+  });
+  const server = instance.app.listen(0);
+  await new Promise((resolve) => server.once("listening", resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    for (const route of ["/", "/admin", "/entries/example"]) {
+      const response = await fetch(base + route);
+      assert.equal(response.status, 200, route);
+      assert.match(response.headers.get("content-type"), /text\/html/);
+      assert.match(await response.text(), /TravelMemo/);
+    }
+    const media = await fetch(
+      base + "/media/00000000-0000-0000-0000-000000000000.webp",
+    );
+    assert.equal(media.status, 404);
+    assert.match(media.headers.get("content-type"), /application\/json/);
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+    instance.close();
+    await rm(temporaryDir, { recursive: true, force: true });
   }
 });
