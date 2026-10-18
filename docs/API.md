@@ -1,6 +1,6 @@
 # 实现边界与接口约定
 
-后端 Node.js 24 + Express + node:sqlite + sharp，目录 server/。前端 React + TypeScript + Vite + MapLibre，目录 web/。各有 package.json。同源部署，开发代理 /api 和 /media 至 3001。主控负责根目录部署、地图数据、集成验收。所有 id 为字符串，日期 YYYY-MM-DD，经纬度 WGS84，provinceCode/cityCode 为六位行政区代码字符串。
+后端 Node.js 24 + Express + node:sqlite + sharp，目录 server/。前端 React + TypeScript + Vite + MapLibre，目录 web/。各有 package.json。同源部署，开发代理 /api 和 /media 至 8015。主控负责根目录部署、地图数据、集成验收。所有 id 为字符串，日期 YYYY-MM-DD，经纬度 WGS84，provinceCode/cityCode 为六位行政区代码字符串。
 
 Trip: {id,title,description,cityRoute:[{name,lng,lat}]}。
 Place: {id,name,province,provinceCode,city,cityCode,lng,lat}。

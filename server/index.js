@@ -1,6 +1,6 @@
 import { createApp } from "./app.js";
 const { app, close } = createApp();
-const server = app.listen(Number(process.env.PORT ?? 3001), () =>
+const server = app.listen(Number(process.env.PORT ?? 8015), () =>
   console.log(`TravelMemo listening on ${server.address().port}`),
 );
 for (const signal of ["SIGTERM", "SIGINT"])

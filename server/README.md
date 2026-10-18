@@ -8,7 +8,7 @@ Optional environment:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| PORT | 3001 | HTTP listener |
+| PORT | 8015 | HTTP listener |
 | DATA_DIR | server/data | SQLite database and media directory |
 | STATIC_DIR | web/dist | Built frontend directory |
 | COOKIE_SECURE | false | Set true for HTTPS deployment |
