@@ -191,9 +191,7 @@ export function PublicPage() {
     setMobileView("timeline");
     setMobileExpanded(true);
     const place = placesById.get(entry.placeId);
-    if (place) {
-      window.setTimeout(() => mapRef.current?.focusPlace(place), 40);
-    }
+    if (place) mapRef.current?.focusPlace(place);
   };
 
   const selectPlace = (placeId: string): void => {

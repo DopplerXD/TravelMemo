@@ -1,6 +1,7 @@
 import type {
   Catalog,
   Entry,
+  MapConfig,
   Photo,
   Place,
   SessionInfo,
@@ -94,6 +95,8 @@ export const api = {
     request<Entry>(`/api/entries/${encodeURIComponent(id)}`, { signal }),
   session: (signal?: AbortSignal) =>
     request<SessionInfo>("/api/session", { signal }),
+  mapConfig: (signal?: AbortSignal) =>
+    request<MapConfig>("/api/map-config", { signal }),
   login: (username: string, password: string) =>
     request<SessionInfo>("/api/login", {
       method: "POST",

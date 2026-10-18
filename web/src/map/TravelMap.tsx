@@ -10,7 +10,7 @@ import {
   type MapGeoJSONFeature,
   type MapMouseEvent,
   type MapSourceDataEvent,
-} from "maplibre-gl";
+} from "./maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
   forwardRef,
@@ -43,6 +43,10 @@ import {
   LOCAL_STYLE,
   MAP_STYLE_URL,
 } from "./mapStyle";
+import { applyMapConfig, basemapConfigured, BASEMAP_LABEL_SOURCE, BASEMAP_SOURCE, releaseMapConfig } from "./basemap";
+import { cityFillOpacity, provinceFillOpacity } from "./paint";
+import { useMapConfig } from "../lib/useMapConfig";
+import { mapDuration } from "../lib/motion";
 
 const CITY_LOAD_ZOOM = 5;
 const CITY_FILL_MIN_ZOOM = 4.9;
@@ -207,7 +211,7 @@ function ensureLayer(map: MapLibreMap, layer: LayerSpecification): void {
   if (!map.getLayer(layer.id)) map.addLayer(layer);
 }
 
-function addOverlayLayers(map: MapLibreMap): void {
+function addOverlayLayers(map: MapLibreMap, withBasemap: boolean): void {
   if (!map.getSource("provinces")) {
     map.addSource("provinces", {
       type: "geojson",
@@ -254,14 +258,7 @@ function addOverlayLayers(map: MapLibreMap): void {
         "#ffcdd2",
         "#f8f7f5",
       ],
-      "fill-opacity": [
-        "case",
-        ["boolean", ["get", "_visited"], false],
-        0.9,
-        ["boolean", ["feature-state", "hover"], false],
-        0.92,
-        0.82,
-      ],
+      "fill-opacity": provinceFillOpacity(withBasemap),
     },
   });
   ensureLayer(map, {
@@ -293,16 +290,7 @@ function addOverlayLayers(map: MapLibreMap): void {
         "#f7b5cc",
         "#f38caf",
       ],
-      "fill-opacity": [
-        "case",
-        ["boolean", ["get", "_municipality"], false],
-        0,
-        ["boolean", ["get", "_visited"], false],
-        0.45,
-        ["boolean", ["feature-state", "hover"], false],
-        0.28,
-        0,
-      ],
+      "fill-opacity": cityFillOpacity(withBasemap),
     },
   });
   ensureLayer(map, {
@@ -405,6 +393,19 @@ function addOverlayLayers(map: MapLibreMap): void {
   });
 }
 
+function syncFillOpacity(map: MapLibreMap, withBasemap: boolean): void {
+  try {
+    if (map.getLayer("province-fill")) {
+      map.setPaintProperty("province-fill", "fill-opacity", provinceFillOpacity(withBasemap));
+    }
+    if (map.getLayer("city-fill")) {
+      map.setPaintProperty("city-fill", "fill-opacity", cityFillOpacity(withBasemap));
+    }
+  } catch {
+    // A style swap can race with this call; the next style.load retries.
+  }
+}
+
 function createLabel(text: string, className: string): HTMLDivElement {
   const element = document.createElement("div");
   element.className = `map-label ${className}`;
@@ -487,6 +488,19 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
     const [styleEpoch, setStyleEpoch] = useState(0);
     const [mapZoom, setMapZoom] = useState(3.6);
     const [cityLoading, setCityLoading] = useState(false);
+    const [basemapError, setBasemapError] = useState(false);
+    const [basemapVersion, setBasemapVersion] = useState(0);
+
+    const { config: mapConfig, error: mapConfigError, retry: retryMapConfig } = useMapConfig();
+    const withBasemap = basemapConfigured(mapConfig);
+    const withBasemapRef = useRef(withBasemap);
+    withBasemapRef.current = withBasemap;
+    const dataRef = useRef({
+      provinceData: null as AdminCollection | null,
+      cityData: null as AdminCollection | null,
+      placesData: { type: "FeatureCollection", features: [] } as PlaceCollection,
+      routeData: { type: "FeatureCollection", features: [] } as RouteCollection,
+    });
 
     const handlersRef = useRef({ onSelectPlace, onClearSelection });
     handlersRef.current = { onSelectPlace, onClearSelection };
@@ -494,7 +508,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
     const fitChina = useCallback((map: MapLibreMap, duration: number) => {
       map.fitBounds(CHINA_VIEW_BOUNDS, {
         padding: fitPaddingRef.current ?? { top: 70, right: 60, bottom: 60, left: 60 },
-        duration,
+        duration: mapDuration(duration),
         maxZoom: 4.9,
         essential: true,
       });
@@ -541,6 +555,8 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
 
     const routeData = useMemo(() => routeCollection(activeTrip), [activeTrip]);
 
+    dataRef.current = { provinceData, cityData, placesData, routeData };
+
     const loadProvince = useCallback((provinceCode: string) => {
       const code = normalizeAdcode(provinceCode);
       if (!code) return;
@@ -565,7 +581,10 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
 
     const loadVisibleCities = useCallback(() => {
       const map = mapRef.current;
-      if (!map || !map.isStyleLoaded() || map.getZoom() < CITY_LOAD_ZOOM) return;
+      // Do not gate on `isStyleLoaded()`: it reports false while *any* source is
+      // still streaming, which would permanently skip city loading on a cold
+      // start. Layer presence plus a guarded query is enough here.
+      if (!map || map.getZoom() < CITY_LOAD_ZOOM) return;
       if (!map.getLayer("province-fill")) return;
       let features: MapGeoJSONFeature[] = [];
       try {
@@ -688,9 +707,19 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       });
 
       map.on("error", (event: MapErrorEvent) => {
-        const message = String(
-          (event as unknown as { error?: { message?: string } }).error?.message ?? "",
-        );
+        const detail = event as unknown as {
+          error?: { message?: string };
+          sourceId?: string;
+        };
+        const message = String(detail.error?.message ?? "");
+        if (
+          !useExternalStyle &&
+          (detail.sourceId === BASEMAP_SOURCE ||
+            detail.sourceId === BASEMAP_LABEL_SOURCE ||
+            /tile|basemap/i.test(message))
+        ) {
+          setBasemapError(true);
+        }
         if (
           useExternalStyle &&
           !styleFallbackRef.current &&
@@ -715,31 +744,50 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
         selectedMarkerRef.current = null;
         for (const { marker } of clusterMarkersRef.current.values()) marker.remove();
         clusterMarkersRef.current.clear();
+        releaseMapConfig(map);
         map.remove();
         mapRef.current = null;
         setMapReady(false);
       };
     }, [fitChina]);
 
+    const applyOverlayData = useCallback(() => {
+      const map = mapRef.current;
+      if (!map) return false;
+      try {
+        addOverlayLayers(map, withBasemapRef.current);
+        syncFillOpacity(map, withBasemapRef.current);
+
+        const data = dataRef.current;
+        (map.getSource("provinces") as GeoJSONSource | undefined)?.setData(
+          data.provinceData ?? { type: "FeatureCollection", features: [] },
+        );
+        (map.getSource("cities") as GeoJSONSource | undefined)?.setData(
+          data.cityData ?? { type: "FeatureCollection", features: [] },
+        );
+        (map.getSource("places") as GeoJSONSource | undefined)?.setData(data.placesData);
+        (map.getSource("route") as GeoJSONSource | undefined)?.setData(data.routeData);
+        return true;
+      } catch {
+        return false;
+      }
+    }, []);
+
     useEffect(() => {
       const map = mapRef.current;
       if (!map || !mapReady) return;
-      try {
-        addOverlayLayers(map);
 
-        const provinceSource = map.getSource("provinces") as GeoJSONSource | undefined;
-        provinceSource?.setData(
-          provinceData ?? { type: "FeatureCollection", features: [] },
-        );
-        const citySource = map.getSource("cities") as GeoJSONSource | undefined;
-        citySource?.setData(cityData ?? { type: "FeatureCollection", features: [] });
-        const placeSource = map.getSource("places") as GeoJSONSource | undefined;
-        placeSource?.setData(placesData);
-        const routeSource = map.getSource("route") as GeoJSONSource | undefined;
-        routeSource?.setData(routeData);
-      } catch {
-        // A style swap can race with this effect; the next style.load retries.
-        return;
+      if (!applyOverlayData()) {
+        // The style is still being torn down or rebuilt: retry once it settles
+        // instead of silently dropping this data update.
+        const retry = (): void => {
+          applyOverlayData();
+          updateClusterBadges();
+        };
+        map.once("style.load", retry);
+        return () => {
+          map.off("style.load", retry);
+        };
       }
 
       const timer = window.setTimeout(updateClusterBadges, 60);
@@ -751,8 +799,24 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       cityData,
       placesData,
       routeData,
+      applyOverlayData,
       updateClusterBadges,
     ]);
+
+    // Load the runtime basemap (vector tiles + annotation overlay) once the
+    // style is live, and re-apply it after a style swap or a manual retry.
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !mapReady || MAP_STYLE_URL) return;
+      try {
+        if (!basemapConfigured(mapConfig)) return;
+        const applied = applyMapConfig(map, mapConfig);
+        if (applied) setBasemapError(false);
+        syncFillOpacity(map, applied || withBasemap);
+      } catch {
+        setBasemapError(true);
+      }
+    }, [mapReady, styleEpoch, mapConfig, basemapVersion, withBasemap]);
 
     useEffect(() => {
       const map = mapRef.current;
@@ -884,7 +948,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
               map.easeTo({
                 center: (cluster.geometry as GeoPoint).coordinates as [number, number],
                 zoom: Math.min(zoom + 0.1, 15),
-                duration: 600,
+                duration: mapDuration(600),
                 essential: true,
               });
             });
@@ -898,7 +962,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
             map.flyTo({
               center,
               zoom: Math.max(map.getZoom(), 8.8),
-              duration: 750,
+              duration: mapDuration(750),
               essential: true,
             });
           }
@@ -915,7 +979,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
               ],
               {
                 padding: { top: 70, right: 70, bottom: 70, left: 70 },
-                duration: 750,
+                duration: mapDuration(750),
                 maxZoom: 6.1,
                 essential: true,
               },
@@ -977,7 +1041,13 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
         if (MUNICIPALITY_CODES.has(normalizeAdcode(feature.properties?.adcode))) {
           element.classList.add("map-label--municipality");
         }
-        const marker = new Marker({ element, anchor: "center" })
+        const marker = new Marker({
+          element,
+          anchor: "center",
+          // Centroid labels sit exactly where a place marker often is; lifting
+          // them keeps the dot itself clickable and visible.
+          offset: [0, -12],
+        })
           .setLngLat(center)
           .addTo(map);
         provinceMarkersRef.current.push({ marker, element });
@@ -1000,7 +1070,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
         const visited = Boolean(feature.properties?._visited);
         const element = createLabel(name, "map-label--city");
         if (visited) element.classList.add("map-label--visited");
-        const marker = new Marker({ element, anchor: "center" })
+        const marker = new Marker({ element, anchor: "center", offset: [0, -12] })
           .setLngLat(center)
           .addTo(map);
         cityMarkersRef.current.push({ marker, element, center, visited });
@@ -1059,7 +1129,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
             center: [place.lng, place.lat],
             zoom: Math.max(map.getZoom(), SELECTED_ZOOM),
             offset: isMobile ? [0, -Math.min(170, window.innerHeight * 0.15)] : [0, 0],
-            duration: 950,
+            duration: mapDuration(950),
             curve: 1.5,
             essential: true,
           });
@@ -1080,13 +1150,25 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       loadVisibleCities();
     };
 
+    const retryBasemap = (): void => {
+      setBasemapError(false);
+      retryMapConfig();
+      setBasemapVersion((value) => value + 1);
+    };
+
+    const basemapNotice = basemapError
+      ? "底图瓦片加载失败"
+      : mapConfigError
+        ? "底图配置加载失败"
+        : null;
+
     return (
       <div className="travel-map" ref={containerRef}>
         <div className="map-controls" aria-label="地图控制">
           <button
             aria-label="放大地图"
             className="map-control"
-            onClick={() => mapRef.current?.zoomIn({ duration: 280 })}
+            onClick={() => mapRef.current?.zoomIn({ duration: mapDuration(280) })}
             title="放大"
             type="button"
           >
@@ -1095,7 +1177,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
           <button
             aria-label="缩小地图"
             className="map-control"
-            onClick={() => mapRef.current?.zoomOut({ duration: 280 })}
+            onClick={() => mapRef.current?.zoomOut({ duration: mapDuration(280) })}
             title="缩小"
             type="button"
           >
@@ -1144,6 +1226,15 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
           </div>
         ) : null}
 
+        {basemapNotice ? (
+          <div className="map-status map-status--basemap" role="status">
+            <span>{basemapNotice}，仍可查看足迹</span>
+            <button className="text-btn" onClick={retryBasemap} type="button">
+              重试
+            </button>
+          </div>
+        ) : null}
+
         {cityLoading && mapZoom >= CITY_LOAD_ZOOM ? (
           <div className="map-status map-status--quiet">
             <Spinner size={13} label="正在加载城市边界" />
@@ -1151,7 +1242,9 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
           </div>
         ) : null}
 
-        <div className="map-credit">行政区划 · 本地矢量数据</div>
+        {withBasemap && !basemapError ? null : (
+          <div className="map-credit">行政区划 · 本地矢量数据</div>
+        )}
       </div>
     );
   },

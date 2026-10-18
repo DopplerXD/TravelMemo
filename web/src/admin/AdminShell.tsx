@@ -248,13 +248,6 @@ export function AdminShell({
               );
             })}
           </nav>
-          <div className="admin-side__note">
-            <span>
-              <CheckIcon />
-              无草稿
-            </span>
-            <p>每次保存都会直接更新公开内容。</p>
-          </div>
         </aside>
 
         <section className="admin-content">
