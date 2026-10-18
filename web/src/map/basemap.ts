@@ -1,11 +1,12 @@
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { AttributionControl, type RasterTileSource } from "maplibre-gl";
 import type { MapConfig } from "../types";
+import type { Theme as MapTheme } from "../lib/theme";
 
 export const BASEMAP_SOURCE = "basemap";
 export const BASEMAP_LABEL_SOURCE = "basemap-labels";
-const BASEMAP_LAYER = "basemap";
-const BASEMAP_LABEL_LAYER = "basemap-labels";
+export const BASEMAP_LAYER = "basemap";
+export const BASEMAP_LABEL_LAYER = "basemap-labels";
 
 /** The layer the basemap has to sit underneath, so footprint fills stay on top. */
 const BELOW_LAYER = "province-fill";
@@ -49,13 +50,20 @@ function ensureRasterSource(
   return (map.getSource(id) as RasterTileSource | undefined) ?? null;
 }
 
+function basemapOpacity(theme: MapTheme): number {
+  return theme === "dark" ? 0.62 : 1;
+}
+
 function addRasterLayer(
   map: MapLibreMap,
   id: string,
   opacity: number,
   belowLayer: string,
 ): void {
-  if (map.getLayer(id)) return;
+  if (map.getLayer(id)) {
+    map.setPaintProperty(id, "raster-opacity", opacity);
+    return;
+  }
   const before = map.getLayer(belowLayer) ? belowLayer : undefined;
   map.addLayer(
     {
@@ -81,6 +89,7 @@ export function applyMapConfig(
   map: MapLibreMap,
   config: MapConfig | null,
   belowLayer: string = BELOW_LAYER,
+  theme: MapTheme = "light",
 ): boolean {
   const tiles = config?.tiles.filter(Boolean) ?? [];
   if (tiles.length === 0) {
@@ -92,12 +101,13 @@ export function applyMapConfig(
 
   const previous = applied.get(map);
 
+  const opacity = basemapOpacity(theme);
   ensureRasterSource(map, BASEMAP_SOURCE, tiles, maxZoom);
-  addRasterLayer(map, BASEMAP_LAYER, 1, belowLayer);
+  addRasterLayer(map, BASEMAP_LAYER, opacity, belowLayer);
 
   if (overlayTiles.length > 0) {
     ensureRasterSource(map, BASEMAP_LABEL_SOURCE, overlayTiles, maxZoom);
-    addRasterLayer(map, BASEMAP_LABEL_LAYER, 1, belowLayer);
+    addRasterLayer(map, BASEMAP_LABEL_LAYER, theme === "dark" ? 0.7 : 1, belowLayer);
   } else if (map.getLayer(BASEMAP_LABEL_LAYER)) {
     map.removeLayer(BASEMAP_LABEL_LAYER);
     if (map.getSource(BASEMAP_LABEL_SOURCE)) map.removeSource(BASEMAP_LABEL_SOURCE);

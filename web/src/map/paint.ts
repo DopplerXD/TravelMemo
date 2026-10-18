@@ -2,8 +2,68 @@ import type {
   DataDrivenPropertyValueSpecification,
   ExpressionSpecification,
 } from "maplibre-gl";
+import type { Theme as MapTheme } from "../lib/theme";
 
-type FillValue = number | ExpressionSpecification;
+type FillValue = number | string | ExpressionSpecification;
+
+export interface MapPalette {
+  background: string;
+  province: string;
+  provinceVisited: string;
+  provinceHover: string;
+  provinceLine: string;
+  provinceLineVisited: string;
+  city: string;
+  cityHover: string;
+  cityLine: string;
+  place: string;
+  placeSelected: string;
+  route: string;
+  routeHalo: string;
+  cluster: string;
+  markerStroke: string;
+}
+
+export const MAP_PALETTES: Record<MapTheme, MapPalette> = {
+  light: {
+    background: "#e8eef4",
+    province: "#f8f7f5",
+    provinceVisited: "#ffcdd2",
+    provinceHover: "#ffeaf0",
+    provinceLine: "#c6d0dd",
+    provinceLineVisited: "#e9a8ba",
+    city: "#f38caf",
+    cityHover: "#f7b5cc",
+    cityLine: "#bfcbd9",
+    place: "#1877f2",
+    placeSelected: "#f38caf",
+    route: "#1877f2",
+    routeHalo: "#ffffff",
+    cluster: "#1877f2",
+    markerStroke: "#ffffff",
+  },
+  dark: {
+    background: "#0d1218",
+    province: "#1a212b",
+    provinceVisited: "#54303c",
+    provinceHover: "#6b3a49",
+    provinceLine: "#3a4757",
+    provinceLineVisited: "#b06a82",
+    city: "#b45d7a",
+    cityHover: "#cf7d99",
+    cityLine: "#3f4c5d",
+    place: "#62a9ff",
+    placeSelected: "#ff9ab7",
+    route: "#62a9ff",
+    routeHalo: "#0d1218",
+    cluster: "#4f8fdd",
+    markerStroke: "#161c25",
+  },
+};
+
+export function mapPalette(theme: MapTheme = "light"): MapPalette {
+  return MAP_PALETTES[theme];
+}
 
 function caseValue(
   hover: FillValue,
@@ -17,6 +77,31 @@ function caseValue(
     ["boolean", ["get", "_visited"], false],
     visited,
     unvisited,
+  ] as unknown as ExpressionSpecification;
+}
+
+export function provinceFillColor(
+  theme: MapTheme = "light",
+): DataDrivenPropertyValueSpecification<string> {
+  const palette = mapPalette(theme);
+  return caseValue(
+    palette.provinceHover,
+    palette.provinceVisited,
+    palette.province,
+  );
+}
+
+export function cityFillColor(
+  theme: MapTheme = "light",
+): DataDrivenPropertyValueSpecification<string> {
+  const palette = mapPalette(theme);
+  return [
+    "case",
+    ["boolean", ["get", "_visited"], false],
+    palette.city,
+    ["boolean", ["feature-state", "hover"], false],
+    palette.cityHover,
+    palette.city,
   ] as unknown as ExpressionSpecification;
 }
 

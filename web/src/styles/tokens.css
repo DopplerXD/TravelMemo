@@ -4,12 +4,16 @@
   --bg: #f0f2f5;
   --bg-warm: #f7f4f3;
   --surface: #ffffff;
+  --surface-raised: rgba(255, 255, 255, 0.9);
   --surface-soft: #f7f8fa;
   --surface-sunken: #eef1f5;
   --glass: rgba(255, 255, 255, 0.72);
-  --glass-strong: rgba(255, 255, 255, 0.86);
+  --glass-strong: rgba(255, 255, 255, 0.88);
   --glass-border: rgba(255, 255, 255, 0.66);
   --glass-line: rgba(20, 30, 50, 0.08);
+  --panel-inset: rgba(255, 255, 255, 0.8);
+  --panel-tint: rgba(255, 255, 255, 0.62);
+  --panel-tint-strong: rgba(255, 255, 255, 0.9);
 
   --ink: #191c24;
   --ink-2: #505769;
@@ -22,6 +26,7 @@
   --accent-press: #0d5fc8;
   --accent-soft: rgba(24, 119, 242, 0.1);
   --accent-softer: rgba(24, 119, 242, 0.06);
+  --accent-border: rgba(24, 119, 242, 0.16);
 
   --pink: #ffcdd2;
   --pink-strong: #f38caf;
@@ -30,14 +35,34 @@
   --pink-line: rgba(243, 140, 175, 0.34);
 
   --danger: #d93b4f;
+  --danger-ink: #a32234;
   --danger-soft: rgba(217, 59, 79, 0.1);
   --success: #1c8a5c;
+  --success-strong: #0f7a4d;
   --success-soft: rgba(28, 138, 92, 0.1);
   --warning: #a96908;
   --warning-soft: rgba(197, 127, 17, 0.11);
 
   --line: rgba(20, 30, 50, 0.09);
   --line-strong: rgba(20, 30, 50, 0.16);
+  --hover-tint: rgba(20, 30, 50, 0.055);
+  --hover-tint-strong: rgba(20, 30, 50, 0.09);
+  --chip-tint: rgba(20, 30, 50, 0.055);
+  --nav-active: rgba(20, 30, 50, 0.065);
+  --nav-active-strong: rgba(20, 30, 50, 0.1);
+
+  --field-bg: #f7f8fa;
+  --field-bg-focus: #ffffff;
+  --field-translucent: rgba(255, 255, 255, 0.56);
+  --field-translucent-border: rgba(20, 30, 50, 0.06);
+  --scrim: rgba(15, 20, 30, 0.34);
+  --skeleton-a: rgba(20, 30, 50, 0.055);
+  --skeleton-b: rgba(20, 30, 50, 0.095);
+  --scroll-thumb: rgba(38, 48, 70, 0.16);
+  --scroll-thumb-hover: rgba(38, 48, 70, 0.26);
+
+  --focus-ring: rgba(24, 119, 242, 0.32);
+  --focus-ring-soft: rgba(24, 119, 242, 0.14);
 
   --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04), 0 6px 16px rgba(16, 24, 40, 0.06);
@@ -57,15 +82,220 @@
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
   --topbar-gap: 16px;
-  --timeline-width: 360px;
+  --nav-height: 54px;
+  --panel-top: 88px;
+  --panel-bottom: 92px;
+  --panel-gap: 20px;
+  --side-panel-width: 384px;
+  --center-panel-width: 920px;
+  --timeline-width: 384px;
   --detail-width: 400px;
+
+  --toast-success-bg: #0f1f18;
+  --toast-success-ink: #e8fff3;
+  --toast-error-bg: #2a0b10;
+  --toast-error-ink: #ffecef;
+  --photo-overlay: rgba(10, 16, 28, 0.6);
+  --cover-veil: rgba(12, 20, 35, 0.42);
+
+  --admin-glow-pink: rgba(255, 205, 210, 0.26);
+  --admin-glow-blue: rgba(24, 119, 242, 0.13);
+  --admin-bg-top: #f3f4f7;
+  --admin-bg-mid: #eef1f5;
+  --admin-topbar-bg: rgba(243, 244, 247, 0.76);
+  --admin-row-bg: rgba(255, 255, 255, 0.9);
+  --admin-row-border: rgba(255, 255, 255, 0.9);
+  --login-bg: #f2f4f7;
+  --login-glow-pink: rgba(255, 205, 210, 0.46);
+  --login-glow-blue: rgba(24, 119, 242, 0.17);
+  --login-card-bg: rgba(255, 255, 255, 0.82);
+  --login-card-border: rgba(255, 255, 255, 0.8);
+
+  --map-bg: #e8eef4;
+  --map-province: #f8f7f5;
+  --map-province-visited: #ffcdd2;
+  --map-province-hover: #ffeaf0;
+  --map-province-line: #c6d0dd;
+  --map-province-line-visited: #e9a8ba;
+  --map-city: #f38caf;
+  --map-city-hover: #f7b5cc;
+  --map-city-line: #bfcbd9;
+  --map-place: #1877f2;
+  --map-place-selected: #f38caf;
+  --map-route: #1877f2;
+  --map-route-halo: #ffffff;
+  --map-cluster: #1877f2;
+  --map-marker-stroke: #ffffff;
+  --map-label: rgba(58, 68, 88, 0.72);
+  --map-label-bg: rgba(255, 255, 255, 0.76);
+  --map-label-border: rgba(233, 168, 186, 0.6);
+  --map-label-visited: #a93d61;
+  --map-label-city: rgba(70, 80, 100, 0.72);
+  --map-label-city-bg: rgba(255, 255, 255, 0.58);
+  --map-label-city-bg-strong: rgba(255, 255, 255, 0.86);
+  --map-label-shadow: rgba(255, 255, 255, 0.9);
+  --map-label-shadow-soft: rgba(255, 255, 255, 0.8);
+  --map-pin-bg: #ffffff;
+  --map-pin-border: rgba(243, 140, 175, 0.5);
+  --map-pin-shadow: rgba(70, 30, 48, 0.16);
+  --map-popup-bg: rgba(255, 255, 255, 0.88);
+  --map-popup-border: rgba(255, 255, 255, 0.8);
+  --map-cluster-text: #ffffff;
+  --map-route-stop-bg: #ffffff;
+  --map-route-stop-text: #1877f2;
+  --map-route-stop-shadow: rgba(13, 66, 138, 0.2);
+  --map-status-bg: rgba(255, 255, 255, 0.8);
+  --map-loading-bg: rgba(255, 255, 255, 0.74);
+  --map-credit: rgba(50, 60, 80, 0.44);
+  --map-basemap-opacity: 1;
+  --map-basemap-label-opacity: 1;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0e1116;
+  --bg-warm: #12161d;
+  --surface: #1b202a;
+  --surface-raised: rgba(31, 36, 47, 0.92);
+  --surface-soft: #202630;
+  --surface-sunken: #151a22;
+  --glass: rgba(23, 28, 37, 0.74);
+  --glass-strong: rgba(23, 28, 37, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-line: rgba(255, 255, 255, 0.07);
+  --panel-inset: rgba(255, 255, 255, 0.045);
+  --panel-tint: rgba(255, 255, 255, 0.045);
+  --panel-tint-strong: rgba(255, 255, 255, 0.075);
+
+  --ink: #f1f4f9;
+  --ink-2: #c4cbd8;
+  --ink-3: #98a2b4;
+  --ink-4: #707a8c;
+  --on-accent: #06121f;
+
+  --accent: #62a9ff;
+  --accent-hover: #83baff;
+  --accent-press: #a2c9ff;
+  --accent-soft: rgba(98, 169, 255, 0.16);
+  --accent-softer: rgba(98, 169, 255, 0.09);
+  --accent-border: rgba(98, 169, 255, 0.24);
+
+  --pink: #4b2b36;
+  --pink-strong: #f0a2ba;
+  --pink-deep: #f3b1c5;
+  --pink-soft: rgba(240, 162, 186, 0.12);
+  --pink-line: rgba(240, 162, 186, 0.32);
+
+  --danger: #ff8997;
+  --danger-ink: #ff9faa;
+  --danger-soft: rgba(255, 137, 151, 0.13);
+  --success: #69d3a4;
+  --success-strong: #57c493;
+  --success-soft: rgba(105, 211, 164, 0.13);
+  --warning: #e5b45c;
+  --warning-soft: rgba(229, 180, 92, 0.14);
+
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --hover-tint: rgba(255, 255, 255, 0.055);
+  --hover-tint-strong: rgba(255, 255, 255, 0.1);
+  --chip-tint: rgba(255, 255, 255, 0.07);
+  --nav-active: rgba(255, 255, 255, 0.09);
+  --nav-active-strong: rgba(255, 255, 255, 0.14);
+
+  --field-bg: #202630;
+  --field-bg-focus: #242b36;
+  --field-translucent: rgba(255, 255, 255, 0.045);
+  --field-translucent-border: rgba(255, 255, 255, 0.08);
+  --scrim: rgba(3, 6, 10, 0.58);
+  --skeleton-a: rgba(255, 255, 255, 0.06);
+  --skeleton-b: rgba(255, 255, 255, 0.11);
+  --scroll-thumb: rgba(220, 230, 245, 0.16);
+  --scroll-thumb-hover: rgba(220, 230, 245, 0.26);
+
+  --focus-ring: rgba(98, 169, 255, 0.45);
+  --focus-ring-soft: rgba(98, 169, 255, 0.18);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 6px 16px rgba(0, 0, 0, 0.32);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.22), 0 16px 40px rgba(0, 0, 0, 0.42);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.24), 0 28px 70px rgba(0, 0, 0, 0.55);
+
+  --toast-success-bg: #0f2a20;
+  --toast-success-ink: #ddffee;
+  --toast-error-bg: #351016;
+  --toast-error-ink: #ffe2e6;
+  --photo-overlay: rgba(4, 8, 14, 0.68);
+  --cover-veil: rgba(4, 8, 14, 0.58);
+
+  --admin-glow-pink: rgba(240, 162, 186, 0.08);
+  --admin-glow-blue: rgba(98, 169, 255, 0.1);
+  --admin-bg-top: #10141b;
+  --admin-bg-mid: #0d1117;
+  --admin-topbar-bg: rgba(16, 20, 27, 0.8);
+  --admin-row-bg: rgba(30, 35, 45, 0.92);
+  --admin-row-border: rgba(255, 255, 255, 0.06);
+  --login-bg: #0d1117;
+  --login-glow-pink: rgba(240, 162, 186, 0.09);
+  --login-glow-blue: rgba(98, 169, 255, 0.12);
+  --login-card-bg: rgba(23, 28, 37, 0.86);
+  --login-card-border: rgba(255, 255, 255, 0.08);
+
+  --map-bg: #0d1218;
+  --map-province: #1a212b;
+  --map-province-visited: #54303c;
+  --map-province-hover: #6b3a49;
+  --map-province-line: #3a4757;
+  --map-province-line-visited: #b06a82;
+  --map-city: #b45d7a;
+  --map-city-hover: #cf7d99;
+  --map-city-line: #3f4c5d;
+  --map-place: #62a9ff;
+  --map-place-selected: #ff9ab7;
+  --map-route: #62a9ff;
+  --map-route-halo: #0d1218;
+  --map-cluster: #4f8fdd;
+  --map-marker-stroke: #161c25;
+  --map-label: #b7c0d0;
+  --map-label-bg: rgba(20, 25, 33, 0.74);
+  --map-label-border: rgba(255, 154, 183, 0.36);
+  --map-label-visited: #f3b2c8;
+  --map-label-city: #a8b3c4;
+  --map-label-city-bg: rgba(20, 25, 33, 0.62);
+  --map-label-city-bg-strong: rgba(20, 25, 33, 0.82);
+  --map-label-shadow: rgba(6, 10, 16, 0.9);
+  --map-label-shadow-soft: rgba(6, 10, 16, 0.7);
+  --map-pin-bg: #1c222c;
+  --map-pin-border: rgba(255, 154, 183, 0.4);
+  --map-pin-shadow: rgba(0, 0, 0, 0.45);
+  --map-popup-bg: rgba(26, 31, 40, 0.92);
+  --map-popup-border: rgba(255, 255, 255, 0.1);
+  --map-cluster-text: #f5f8ff;
+  --map-route-stop-bg: #1c222c;
+  --map-route-stop-text: #8fc0ff;
+  --map-route-stop-shadow: rgba(0, 0, 0, 0.42);
+  --map-status-bg: rgba(24, 29, 38, 0.86);
+  --map-loading-bg: rgba(24, 29, 38, 0.8);
+  --map-credit: rgba(200, 210, 225, 0.45);
+  --map-basemap-opacity: 0.62;
+  --map-basemap-label-opacity: 0.7;
+}
+
+@media (max-width: 1240px) {
+  :root {
+    --side-panel-width: 352px;
+    --detail-width: 360px;
+    --center-panel-width: 860px;
+  }
 }
 
 @media (max-width: 1120px) {
   :root {
-    --timeline-width: 320px;
+    --side-panel-width: 332px;
     --detail-width: 340px;
+    --center-panel-width: 820px;
+    --timeline-width: 332px;
   }
 }

@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import { loadProvinces, normalizeAdcode } from "../lib/geo";
 import { useMapConfig } from "../lib/useMapConfig";
 import type { MapConfig } from "../types";
-import { CHINA_VIEW_BOUNDS, LOCAL_STYLE, MAP_STYLE_URL } from "../map/mapStyle";
+import { CHINA_VIEW_BOUNDS, localStyle, MAP_STYLE_URL } from "../map/mapStyle";
 import { applyMapConfig, basemapConfigured } from "../map/basemap";
-import { pickerFillOpacity } from "../map/paint";
+import { mapPalette, pickerFillOpacity } from "../map/paint";
+import { applyThemePaint } from "../map/theme";
+import { useTheme } from "../lib/theme";
 import { Modal } from "../components/Modal";
 
 const PICKER_FILL_LAYER = "picker-provinces-fill";
+const PICKER_LINE_LAYER = "picker-provinces-line";
 
 function PickerMap({
   initial,
@@ -25,6 +28,9 @@ function PickerMap({
   const markerRef = useRef<Marker | null>(null);
   const configRef = useRef(config);
   configRef.current = config;
+  const { theme } = useTheme();
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
   const [styleReady, setStyleReady] = useState(false);
 
   useEffect(() => {
@@ -33,7 +39,7 @@ function PickerMap({
     const useExternalStyle = Boolean(MAP_STYLE_URL);
     const map = new MapLibreMap({
       container,
-      style: useExternalStyle ? MAP_STYLE_URL : LOCAL_STYLE,
+      style: useExternalStyle ? MAP_STYLE_URL : localStyle(themeRef.current),
       center: initial ? [initial.lng, initial.lat] : [104.2, 35.6],
       zoom: initial ? 9.5 : 3.6,
       minZoom: 1.6,
@@ -51,7 +57,7 @@ function PickerMap({
       const current = configRef.current;
       if (!useExternalStyle && basemapConfigured(current)) {
         try {
-          applyMapConfig(map, current, PICKER_FILL_LAYER);
+          applyMapConfig(map, current, PICKER_FILL_LAYER, themeRef.current);
         } catch {
           // Keep the local administrative view if the raster source fails.
         }
@@ -73,12 +79,13 @@ function PickerMap({
               })),
             },
           });
+          const palette = mapPalette(themeRef.current);
           map.addLayer({
             id: PICKER_FILL_LAYER,
             type: "fill",
             source: "picker-provinces",
             paint: {
-              "fill-color": "#f8f7f5",
+              "fill-color": palette.province,
               // Re-evaluate at creation time: the basemap may have arrived while
               // the outline data was still downloading.
               "fill-opacity": pickerFillOpacity(
@@ -87,10 +94,10 @@ function PickerMap({
             },
           });
           map.addLayer({
-            id: "picker-provinces-line",
+            id: PICKER_LINE_LAYER,
             type: "line",
             source: "picker-provinces",
-            paint: { "line-color": "#c6d0dd", "line-width": 0.8 },
+            paint: { "line-color": palette.provinceLine, "line-width": 0.8 },
           });
         })
         .catch(() => {
@@ -145,7 +152,7 @@ function PickerMap({
     if (!map || !styleReady || MAP_STYLE_URL) return;
     if (!basemapConfigured(config)) return;
     try {
-      applyMapConfig(map, config, PICKER_FILL_LAYER);
+      applyMapConfig(map, config, PICKER_FILL_LAYER, themeRef.current);
       if (map.getLayer(PICKER_FILL_LAYER)) {
         map.setPaintProperty(PICKER_FILL_LAYER, "fill-opacity", pickerFillOpacity(true));
       }
@@ -153,6 +160,19 @@ function PickerMap({
       // Leave the picker usable with coordinates and the local outline.
     }
   }, [config, styleReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
+    const palette = mapPalette(theme);
+    applyThemePaint(map, theme, basemapConfigured(config));
+    if (map.getLayer(PICKER_FILL_LAYER)) {
+      map.setPaintProperty(PICKER_FILL_LAYER, "fill-color", palette.province);
+    }
+    if (map.getLayer(PICKER_LINE_LAYER)) {
+      map.setPaintProperty(PICKER_LINE_LAYER, "line-color", palette.provinceLine);
+    }
+  }, [theme, styleReady, config]);
 
   return <div className="picker-map" ref={containerRef} />;
 }

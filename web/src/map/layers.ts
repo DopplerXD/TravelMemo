@@ -1,5 +1,6 @@
 import type { LayerSpecification, SourceSpecification } from "maplibre-gl";
-import { cityFillOpacity, provinceFillOpacity } from "./paint";
+import type { Theme as MapTheme } from "../lib/theme";
+import { cityFillColor, cityFillOpacity, mapPalette, provinceFillColor, provinceFillOpacity } from "./paint";
 
 /** Zoom at which city boundaries start drawing. */
 export const CITY_FILL_MIN_ZOOM = 4.9;
@@ -36,21 +37,18 @@ export const OVERLAY_SOURCES: Record<string, SourceSpecification> = {
   },
 };
 
-export function buildOverlayLayers(withBasemap: boolean): LayerSpecification[] {
+export function buildOverlayLayers(
+  withBasemap: boolean,
+  theme: MapTheme = "light",
+): LayerSpecification[] {
+  const palette = mapPalette(theme);
   return [
     {
       id: "province-fill",
       type: "fill",
       source: "provinces",
       paint: {
-        "fill-color": [
-          "case",
-          ["boolean", ["feature-state", "hover"], false],
-          "#ffeaf0",
-          ["boolean", ["get", "_visited"], false],
-          "#ffcdd2",
-          "#f8f7f5",
-        ],
+        "fill-color": provinceFillColor(theme),
         "fill-opacity": provinceFillOpacity(withBasemap),
       },
     },
@@ -62,8 +60,8 @@ export function buildOverlayLayers(withBasemap: boolean): LayerSpecification[] {
         "line-color": [
           "case",
           ["boolean", ["get", "_visited"], false],
-          "#e9a8ba",
-          "#c6d0dd",
+          palette.provinceLineVisited,
+          palette.provinceLine,
         ],
         "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.7, 7, 1.3],
         "line-opacity": 0.9,
@@ -75,14 +73,7 @@ export function buildOverlayLayers(withBasemap: boolean): LayerSpecification[] {
       source: "cities",
       minzoom: CITY_FILL_MIN_ZOOM,
       paint: {
-        "fill-color": [
-          "case",
-          ["boolean", ["get", "_visited"], false],
-          "#f38caf",
-          ["boolean", ["feature-state", "hover"], false],
-          "#f7b5cc",
-          "#f38caf",
-        ],
+        "fill-color": cityFillColor(theme),
         "fill-opacity": cityFillOpacity(withBasemap),
       },
     },
@@ -92,7 +83,7 @@ export function buildOverlayLayers(withBasemap: boolean): LayerSpecification[] {
       source: "cities",
       minzoom: CITY_FILL_MIN_ZOOM,
       paint: {
-        "line-color": "#bfcbd9",
+        "line-color": palette.cityLine,
         "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.45, 9, 0.9],
         "line-opacity": 0.72,
       },
@@ -103,7 +94,7 @@ export function buildOverlayLayers(withBasemap: boolean): LayerSpecification[] {
       source: "route",
       filter: ["==", ["geometry-type"], "LineString"],
       paint: {
-        "line-color": "#ffffff",
+        "line-color": palette.routeHalo,
         "line-width": ["interpolate", ["linear"], ["zoom"], 4, 3.5, 10, 7],
         "line-opacity": 0.65,
       },
@@ -114,7 +105,7 @@ export function buildOverlayLayers(withBasemap: boolean): LayerSpecification[] {
       source: "route",
       filter: ["==", ["geometry-type"], "LineString"],
       paint: {
-        "line-color": "#1877f2",
+        "line-color": palette.route,
         "line-width": ["interpolate", ["linear"], ["zoom"], 4, 1.6, 10, 3],
         "line-dasharray": [1.6, 1.2],
         "line-opacity": 0.9,
@@ -127,8 +118,8 @@ export function buildOverlayLayers(withBasemap: boolean): LayerSpecification[] {
       filter: ["==", ["geometry-type"], "Point"],
       paint: {
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 5, 10, 7],
-        "circle-color": "#ffffff",
-        "circle-stroke-color": "#1877f2",
+        "circle-color": palette.markerStroke,
+        "circle-stroke-color": palette.route,
         "circle-stroke-width": 2.4,
       },
     },
@@ -139,7 +130,7 @@ export function buildOverlayLayers(withBasemap: boolean): LayerSpecification[] {
       filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "_selected"], true]],
       paint: {
         "circle-radius": 15,
-        "circle-color": "#f38caf",
+        "circle-color": palette.placeSelected,
         "circle-opacity": 0.24,
       },
     },
@@ -153,10 +144,10 @@ export function buildOverlayLayers(withBasemap: boolean): LayerSpecification[] {
         "circle-color": [
           "case",
           ["==", ["get", "_selected"], true],
-          "#f38caf",
-          "#1877f2",
+          palette.placeSelected,
+          palette.place,
         ],
-        "circle-stroke-color": "#ffffff",
+        "circle-stroke-color": palette.markerStroke,
         "circle-stroke-width": 2,
         "circle-opacity": 1,
       },
@@ -167,9 +158,9 @@ export function buildOverlayLayers(withBasemap: boolean): LayerSpecification[] {
       source: "places",
       filter: ["has", "point_count"],
       paint: {
-        "circle-color": "#1877f2",
+        "circle-color": palette.cluster,
         "circle-opacity": 0.92,
-        "circle-stroke-color": "#ffffff",
+        "circle-stroke-color": palette.markerStroke,
         "circle-stroke-width": 2.4,
         "circle-radius": [
           "step",
