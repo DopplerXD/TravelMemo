@@ -6,6 +6,24 @@
     <meta name="theme-color" content="#f0f2f5" />
     <meta name="description" content="TravelMemo · 中国旅行简记" />
     <title>TravelMemo · 中国旅行简记</title>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("travelmemo-theme");
+          var dark =
+            saved === "dark" ||
+            (saved !== "light" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var theme = dark ? "dark" : "light";
+          var root = document.documentElement;
+          root.dataset.theme = theme;
+          root.style.colorScheme = theme;
+          root.style.background = dark ? "#0e1116" : "#f0f2f5";
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", dark ? "#0e1116" : "#f0f2f5");
+        } catch (error) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

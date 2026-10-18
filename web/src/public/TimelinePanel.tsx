@@ -1,10 +1,8 @@
 import { useMemo } from "react";
 import type { EntrySummary, Place, Trip } from "../types";
-import { formatRelativeYear, parseDate, pluralPhotos } from "../lib/date";
+import { parseDate, pluralPhotos } from "../lib/date";
 import {
   CalendarIcon,
-  ChevronDownIcon,
-  ClockIcon,
   CompassIcon,
   ImageIcon,
   MapPinIcon,
@@ -25,87 +23,16 @@ interface TimelinePanelProps {
   selectedEntryId: string | null;
   loading: boolean;
   error: string | null;
-  mobileExpanded: boolean;
   onYearFilter: (year: string) => void;
   onTripFilter: (tripId: string) => void;
   onClearFilters: () => void;
   onSelectEntry: (entry: EntrySummary) => void;
   onRetry: () => void;
-  onToggleExpanded: () => void;
 }
 
-interface EntryCardProps {
-  entry: EntrySummary;
-  place?: Place;
-  trip?: Trip;
-  active: boolean;
-  onSelect: (entry: EntrySummary) => void;
-}
-
-function EntryCard({ entry, place, trip, active, onSelect }: EntryCardProps) {
-  const date = parseDate(entry.date);
-  const cover = entry.photos[0];
-
-  return (
-    <button
-      aria-current={active ? "true" : undefined}
-      className={`timeline-card${active ? " timeline-card--active" : ""}`}
-      onClick={() => onSelect(entry)}
-      type="button"
-    >
-      <span className="timeline-card__date-col">
-        <span className="timeline-card__day">{date.day || "·"}</span>
-        <span className="timeline-card__month">{date.month ? `${Number(date.month)}月` : ""}</span>
-        <span className="timeline-card__dot" aria-hidden />
-      </span>
-      <span className="timeline-card__content">
-        <span className="timeline-card__topline">
-          <span className="timeline-card__place">
-            <MapPinIcon />
-            {place?.name ?? "地点已移除"}
-          </span>
-          {trip ? (
-            <span className="timeline-card__trip">
-              <RouteIcon />
-              {trip.title}
-            </span>
-          ) : null}
-        </span>
-        <span className="timeline-card__title">{entry.title}</span>
-        <span className="timeline-card__meta">
-          <span>
-            <CalendarIcon />
-            {date.monthDay}
-            {date.weekday ? ` · ${date.weekday}` : ""}
-          </span>
-          {entry.photos.length > 0 ? (
-            <span>
-              <ImageIcon />
-              {pluralPhotos(entry.photos.length)}
-            </span>
-          ) : (
-            <span>
-              <ClockIcon />
-              简记
-            </span>
-          )}
-        </span>
-      </span>
-      {cover ? (
-        <span className="timeline-card__media">
-          <img
-            alt={cover.alt || `${entry.title} 的照片`}
-            draggable={false}
-            loading="lazy"
-            onError={(event) => {
-              event.currentTarget.style.visibility = "hidden";
-            }}
-            src={cover.thumbnailUrl}
-          />
-        </span>
-      ) : null}
-    </button>
-  );
+interface TimelineGroup {
+  year: string;
+  entries: Array<{ entry: EntrySummary; side: "left" | "right" }>;
 }
 
 export function TimelinePanel({
@@ -120,50 +47,49 @@ export function TimelinePanel({
   selectedEntryId,
   loading,
   error,
-  mobileExpanded,
   onYearFilter,
   onTripFilter,
   onClearFilters,
   onSelectEntry,
   onRetry,
-  onToggleExpanded,
 }: TimelinePanelProps) {
   const groups = useMemo(() => {
-    const map = new Map<string, EntrySummary[]>();
+    const byYear = new Map<string, EntrySummary[]>();
     for (const entry of entries) {
       const year = parseDate(entry.date).year || "日期待定";
-      const list = map.get(year) ?? [];
+      const list = byYear.get(year) ?? [];
       list.push(entry);
-      map.set(year, list);
+      byYear.set(year, list);
     }
-    return Array.from(map.entries());
+    let index = 0;
+    return Array.from(byYear.entries()).map(([year, yearEntries]): TimelineGroup => ({
+      year,
+      entries: yearEntries.map((entry) => {
+        const item: { entry: EntrySummary; side: "left" | "right" } = {
+          entry,
+          side: index % 2 === 0 ? "left" : "right",
+        };
+        index += 1;
+        return item;
+      }),
+    }));
   }, [entries]);
 
   const hasFilters = yearFilter !== "all" || tripFilter !== "all";
   const hasAnyEntry = allEntries.length > 0;
 
   return (
-    <section
-      aria-label="旅行时间线"
-      className={`timeline-panel floating-panel timeline-panel--${mobileExpanded ? "expanded" : "peek"}`}
-    >
-      <div className="timeline-panel__head">
-        <div>
-          <p className="eyebrow">旅行时间线</p>
-          <h1>一路走来的简记</h1>
-        </div>
-        <button
-          aria-expanded={mobileExpanded}
-          aria-label={mobileExpanded ? "收起时间线" : "展开时间线"}
-          className="icon-btn timeline-panel__toggle"
-          onClick={onToggleExpanded}
-          type="button"
-        >
-          <ChevronDownIcon />
-        </button>
-      </div>
+    <section aria-label="旅行时间线" className="center-panel timeline-view floating-panel">
+      <header className="timeline-view__head">
+        <h1>Timeline</h1>
+        <p>
+          {entries.length > 0
+            ? `${entries.length} 条简记 · 按日期倒序`
+            : "用日期串起旅途中的片段"}
+        </p>
+      </header>
 
-      <div className="timeline-panel__filters">
+      <div className="timeline-view__filters">
         <label className="mini-field">
           <span>年份</span>
           <select
@@ -174,7 +100,7 @@ export function TimelinePanel({
             <option value="all">全部年份</option>
             {years.map((year) => (
               <option key={year} value={year}>
-                {formatRelativeYear(year)}
+                {year}
               </option>
             ))}
           </select>
@@ -195,18 +121,18 @@ export function TimelinePanel({
           </select>
         </label>
         {hasFilters ? (
-          <button className="text-btn timeline-panel__clear" onClick={onClearFilters} type="button">
+          <button className="text-btn timeline-view__clear" onClick={onClearFilters} type="button">
             清除筛选
           </button>
         ) : null}
       </div>
 
-      <div className="timeline-panel__scroll">
+      <div className="timeline-view__scroll">
         {loading && !allEntries.length ? (
           <div className="timeline-skeleton" aria-label="正在加载时间线">
             {[0, 1, 2].map((item) => (
               <div className="timeline-skeleton__card" key={item}>
-                <span className="skeleton skeleton--dot" />
+                <span className="skeleton skeleton--photo" />
                 <span className="timeline-skeleton__lines">
                   <span className="skeleton skeleton--sm" />
                   <span className="skeleton skeleton--lg" />
@@ -230,7 +156,7 @@ export function TimelinePanel({
         ) : entries.length === 0 ? (
           <EmptyState
             description="换一个年份或旅行看看，或者清除当前筛选。"
-            icon={<ClockIcon />}
+            icon={<CalendarIcon />}
             title="这个筛选下还没有简记"
             action={
               <button className="btn btn--soft btn--sm" onClick={onClearFilters} type="button">
@@ -239,24 +165,83 @@ export function TimelinePanel({
             }
           />
         ) : (
-          <div className="timeline-groups">
-            {groups.map(([year, yearEntries]) => (
-              <section className="timeline-group" key={year}>
-                <header className="timeline-group__head">
-                  <span>{year === "日期待定" ? year : formatRelativeYear(year)}</span>
-                  <span className="timeline-group__count">{yearEntries.length} 条</span>
-                </header>
-                <div className="timeline-group__list">
-                  {yearEntries.map((entry) => (
-                    <EntryCard
-                      active={entry.id === selectedEntryId}
-                      entry={entry}
-                      key={entry.id}
-                      onSelect={onSelectEntry}
-                      place={placesById.get(entry.placeId)}
-                      trip={entry.tripId ? tripsById.get(entry.tripId) : undefined}
-                    />
-                  ))}
+          <div className="timeline-track">
+            <span aria-hidden className="timeline-track__line" />
+            {groups.map((group) => (
+              <section className="timeline-year" key={group.year}>
+                <div className="timeline-year__pill">
+                  <span>{group.year}</span>
+                  <i>{group.entries.length}</i>
+                </div>
+                <div className="timeline-year__items">
+                  {group.entries.map(({ entry, side }) => {
+                    const place = placesById.get(entry.placeId);
+                    const trip = entry.tripId ? tripsById.get(entry.tripId) : undefined;
+                    const date = parseDate(entry.date);
+                    const cover = entry.photos[0];
+                    return (
+                      <div
+                        className={`timeline-item timeline-item--${side}`}
+                        key={entry.id}
+                      >
+                        <button
+                          aria-label={`查看简记 ${entry.title}`}
+                          className={`timeline-card${entry.id === selectedEntryId ? " timeline-card--active" : ""}`}
+                          onClick={() => onSelectEntry(entry)}
+                          type="button"
+                        >
+                          {cover ? (
+                            <span className="timeline-card__media">
+                              <img
+                                alt={cover.alt || `${entry.title} 的照片`}
+                                draggable={false}
+                                loading="lazy"
+                                onError={(event) => {
+                                  event.currentTarget.style.display = "none";
+                                }}
+                                src={cover.thumbnailUrl}
+                              />
+                              {entry.photos.length > 1 ? (
+                                <span className="timeline-card__photo-count">
+                                  <ImageIcon />
+                                  {entry.photos.length}
+                                </span>
+                              ) : null}
+                            </span>
+                          ) : null}
+                          <span className="timeline-card__body">
+                            <span className="timeline-card__date">
+                              <CalendarIcon />
+                              {date.full}
+                              {date.weekday ? ` · ${date.weekday}` : ""}
+                            </span>
+                            <span className="timeline-card__place">
+                              <MapPinIcon />
+                              {place?.name ?? "地点已移除"}
+                            </span>
+                            <span className="timeline-card__title">{entry.title}</span>
+                            <span className="timeline-card__meta">
+                              {trip ? (
+                                <span className="timeline-card__trip">
+                                  <RouteIcon />
+                                  {trip.title}
+                                </span>
+                              ) : (
+                                <span className="timeline-card__trip timeline-card__trip--muted">
+                                  <RouteIcon />
+                                  未归入旅行
+                                </span>
+                              )}
+                              {entry.photos.length > 0 ? (
+                                <span>{pluralPhotos(entry.photos.length)}</span>
+                              ) : null}
+                            </span>
+                          </span>
+                        </button>
+                        <span aria-hidden className="timeline-item__dot" />
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             ))}

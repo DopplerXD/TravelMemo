@@ -4,6 +4,7 @@ import type { AdminTab, Catalog, Place, Trip } from "../types";
 import { parseDate, pluralPhotos } from "../lib/date";
 import { navigate } from "../lib/router";
 import { Brand } from "../components/Brand";
+import { ThemeToggle } from "../components/ThemeToggle";
 import { ConfirmDialog } from "../components/Modal";
 import { EmptyState, ErrorState } from "../components/States";
 import { Spinner } from "../components/Spinner";
@@ -196,6 +197,7 @@ export function AdminShell({
           </span>
         </div>
         <div className="admin-topbar__actions">
+          <ThemeToggle className="admin-theme" />
           <a
             className="btn btn--ghost btn--sm"
             href="/"

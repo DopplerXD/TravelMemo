@@ -24,6 +24,13 @@ export function PlacePanel({
   onClose: () => void;
   onSelectEntry: (entry: EntrySummary) => void;
 }) {
+  const years = new Set(
+    entries.map((entry) => parseDate(entry.date).year).filter(Boolean),
+  );
+  const tripCount = new Set(
+    entries.map((entry) => entry.tripId).filter((tripId): tripId is string => Boolean(tripId)),
+  ).size;
+
   return (
     <section aria-label="地点记录" className="detail-panel floating-panel place-panel">
       <header className="detail-panel__head">
@@ -47,7 +54,11 @@ export function PlacePanel({
           </span>
           <div>
             <strong>{entries.length > 0 ? `${entries.length} 次到访记录` : "还没有简记"}</strong>
-            <p>同一地点的不同日期与旅行会分别保留。</p>
+            <p>
+              {entries.length > 0
+                ? `${years.size} 个年份 · ${tripCount} 段旅行 · 同一地点的每次记录分别保留。`
+                : "同一地点的不同日期与旅行会分别保留。"}
+            </p>
           </div>
         </div>
 

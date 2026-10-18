@@ -55,6 +55,22 @@ export function formatRelativeYear(year: string): string {
   return year === current ? "今年" : `${year} 年`;
 }
 
+export function formatDateRange(start?: string | null, end?: string | null): string {
+  if (!start && !end) return "日期待定";
+  const first = parseDate(start ?? end ?? "");
+  const last = parseDate(end ?? start ?? "");
+  if (!first.isValid && !last.isValid) return start || end || "日期待定";
+  if (!last.isValid || start === end) return first.full;
+  if (!first.isValid) return last.full;
+  if (first.year === last.year) {
+    if (first.month === last.month) {
+      return `${first.year}年${Number(first.month)}月${Number(first.day)}日–${Number(last.day)}日`;
+    }
+    return `${first.year}年${Number(first.month)}月${Number(first.day)}日–${Number(last.month)}月${Number(last.day)}日`;
+  }
+  return `${first.full} – ${last.full}`;
+}
+
 export function pluralRecords(count: number): string {
   return `${count} 条记录`;
 }

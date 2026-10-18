@@ -3,6 +3,7 @@ import { api, ApiError, setCsrfToken } from "../api";
 import type { SessionInfo } from "../types";
 import { navigate } from "../lib/router";
 import { Brand } from "../components/Brand";
+import { ThemeToggle } from "../components/ThemeToggle";
 import { Spinner } from "../components/Spinner";
 import { FormAlert } from "./FormBits";
 import { ArrowLeftIcon, LockIcon } from "../icons";
@@ -44,6 +45,9 @@ export function AdminLogin({
 
   return (
     <main className="login-page">
+      <div className="login-page__theme">
+        <ThemeToggle />
+      </div>
       <div className="login-page__glow login-page__glow--blue" />
       <div className="login-page__glow login-page__glow--pink" />
       <div className="login-page__map" aria-hidden>

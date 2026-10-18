@@ -72,7 +72,7 @@ select:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 [tabindex]:focus-visible {
-  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.32);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 input,
@@ -80,7 +80,7 @@ select,
 textarea {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: var(--surface-soft);
+  background: var(--field-bg);
   min-height: 44px;
   padding: 10px 12px;
   transition:
@@ -105,8 +105,8 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent);
-  background: var(--surface);
-  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.14);
+  background: var(--field-bg-focus);
+  box-shadow: 0 0 0 3px var(--focus-ring-soft);
 }
 
 input:disabled,
@@ -151,14 +151,14 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(38, 48, 70, 0.16);
+  background: var(--scroll-thumb);
   border: 2px solid transparent;
   border-radius: var(--radius-pill);
   background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(38, 48, 70, 0.26);
+  background: var(--scroll-thumb-hover);
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -173,7 +173,7 @@ a {
   backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid var(--glass-border);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 1px 0 var(--panel-inset) inset,
     var(--shadow-md);
 }
 
@@ -278,17 +278,17 @@ a {
 }
 
 .btn--soft:hover:not(:disabled) {
-  background: rgba(24, 119, 242, 0.16);
+  background: var(--accent-soft);
 }
 
 .btn--ghost {
-  background: rgba(20, 30, 50, 0.045);
+  background: var(--hover-tint);
   border-color: transparent;
   color: var(--ink-2);
 }
 
 .btn--ghost:hover:not(:disabled) {
-  background: rgba(20, 30, 50, 0.08);
+  background: var(--hover-tint-strong);
   color: var(--ink);
 }
 
@@ -298,7 +298,8 @@ a {
 }
 
 .btn--danger:hover:not(:disabled) {
-  background: #c72f43;
+  background: var(--danger);
+  filter: brightness(0.9);
 }
 
 .btn--sm {
@@ -316,7 +317,7 @@ a {
   align-items: center;
   border: 0;
   border-radius: 50%;
-  background: rgba(20, 30, 50, 0.055);
+  background: var(--hover-tint);
   color: var(--ink-2);
   cursor: pointer;
   display: inline-flex;
@@ -337,7 +338,7 @@ a {
 }
 
 .icon-btn:hover:not(:disabled) {
-  background: rgba(20, 30, 50, 0.09);
+  background: var(--hover-tint-strong);
   color: var(--ink);
 }
 
@@ -400,7 +401,7 @@ a {
 
 .spinner {
   animation: spin 760ms linear infinite;
-  border: 2px solid rgba(24, 119, 242, 0.18);
+  border: 2px solid var(--accent-soft);
   border-radius: 50%;
   border-top-color: var(--accent);
   display: inline-block;
@@ -427,9 +428,9 @@ a {
   animation: shimmer 1.6s ease-in-out infinite;
   background: linear-gradient(
     100deg,
-    rgba(20, 30, 50, 0.055) 20%,
-    rgba(20, 30, 50, 0.095) 38%,
-    rgba(20, 30, 50, 0.055) 56%
+    var(--skeleton-a) 20%,
+    var(--skeleton-b) 38%,
+    var(--skeleton-a) 56%
   );
   background-size: 220% 100%;
   border-radius: 7px;
@@ -467,8 +468,8 @@ a {
 
 .error-state {
   align-items: flex-start;
-  background: rgba(255, 255, 255, 0.58);
-  border: 1px solid rgba(217, 59, 79, 0.18);
+  background: var(--surface-raised);
+  border: 1px solid var(--danger-soft);
   border-radius: var(--radius-md);
   display: flex;
   gap: 12px;
@@ -565,8 +566,8 @@ a {
 .session-gate {
   align-items: center;
   background:
-    radial-gradient(560px 380px at 18% 12%, rgba(243, 140, 175, 0.18), transparent 70%),
-    radial-gradient(600px 420px at 86% 76%, rgba(24, 119, 242, 0.14), transparent 72%),
+    radial-gradient(560px 380px at 18% 12%, var(--admin-glow-pink), transparent 70%),
+    radial-gradient(600px 420px at 86% 76%, var(--admin-glow-blue), transparent 72%),
     var(--bg);
   display: flex;
   flex-direction: column;
@@ -732,7 +733,7 @@ a {
 
 .modal-scrim {
   animation: fade-in 180ms var(--ease-out);
-  background: rgba(15, 20, 30, 0.34);
+  background: var(--scrim);
   -webkit-backdrop-filter: blur(4px);
   backdrop-filter: blur(4px);
   inset: 0;
@@ -747,7 +748,7 @@ a {
 
 .modal {
   animation: modal-in 200ms var(--ease-out);
-  background: #fff;
+  background: var(--surface);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   display: flex;
@@ -820,7 +821,7 @@ a {
 
 .modal__footer {
   align-items: center;
-  background: rgba(247, 248, 250, 0.82);
+  background: var(--surface-soft);
   border-top: 1px solid var(--line);
   display: flex;
   gap: 9px;
@@ -895,13 +896,13 @@ a {
 }
 
 .toast--success {
-  background: #0f1f18;
-  color: #e8fff3;
+  background: var(--toast-success-bg);
+  color: var(--toast-success-ink);
 }
 
 .toast--error {
-  background: #2a0b10;
-  color: #ffecef;
+  background: var(--toast-error-bg);
+  color: var(--toast-error-ink);
 }
 
 .toast__icon {
@@ -1004,7 +1005,7 @@ a {
 
 @media (prefers-reduced-transparency: reduce) {
   .floating-panel {
-    background: #fff;
+    background: var(--surface);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
@@ -1012,9 +1013,47 @@ a {
 
 @media (prefers-contrast: more) {
   .floating-panel {
-    background: #fff;
-    border-color: rgba(0, 0, 0, 0.22);
+    background: var(--surface);
+    border-color: var(--line-strong);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+}
+
+
+:root[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2398a2b4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.theme-toggle {
+  align-items: center;
+  background: var(--hover-tint);
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--ink-2);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 36px;
+  justify-content: center;
+  padding: 0;
+  transition:
+    background-color 140ms var(--ease-out),
+    color 140ms var(--ease-out),
+    transform 100ms var(--ease-out);
+  width: 36px;
+}
+
+.theme-toggle svg {
+  height: 17px;
+  width: 17px;
+}
+
+.theme-toggle:hover {
+  background: var(--hover-tint-strong);
+  color: var(--ink);
+}
+
+.theme-toggle:active {
+  transform: scale(0.93);
 }

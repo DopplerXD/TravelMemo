@@ -1,5 +1,43 @@
 import { useEffect, useState } from "react";
 
+export type PublicView = "map" | "trips" | "places" | "timeline" | "stats";
+
+export interface PublicRoute {
+  view: PublicView;
+  tripId: string | null;
+  placeId: string | null;
+  entryId: string | null;
+}
+
+const PUBLIC_VIEWS = new Set<PublicView>(["trips", "places", "timeline", "stats"]);
+
+/**
+ * Turns the current pathname into a public view plus an optional detail id.
+ * `/` is the map-only view; any other path returns null so the caller can
+ * render the 404 or admin route.
+ */
+export function parsePublicRoute(pathname: string): PublicRoute | null {
+  const clean = pathname.replace(/\/+$/, "") || "/";
+  if (clean === "/") {
+    return { view: "map", tripId: null, placeId: null, entryId: null };
+  }
+  const parts = clean.split("/").filter(Boolean).map(decodeURIComponent);
+  const [first, second, ...rest] = parts;
+  if (!first || !PUBLIC_VIEWS.has(first as PublicView) || rest.length > 0) return null;
+  const view = first as Exclude<PublicView, "map">;
+  const id = second ?? null;
+  return {
+    view,
+    tripId: view === "trips" ? id : null,
+    placeId: view === "places" ? id : null,
+    entryId: view === "timeline" ? id : null,
+  };
+}
+
+export function publicViewPath(view: Exclude<PublicView, "map">): string {
+  return `/${view}`;
+}
+
 export function usePathname(): string {
   const [pathname, setPathname] = useState(() => window.location.pathname);
 
