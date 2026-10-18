@@ -33,7 +33,7 @@ import {
   type AdministrativeFeature,
   type AdministrativeProperties,
 } from "../lib/geo";
-import type { EntrySummary, Place, Trip } from "../types";
+import type { EntrySummary, Place, RouteCity, Trip } from "../types";
 import { ErrorState } from "../components/States";
 import { Spinner } from "../components/Spinner";
 import { ResetIcon } from "../icons";
@@ -41,7 +41,7 @@ import {
   CHINA_PAN_BOUNDS,
   CHINA_VIEW_BOUNDS,
   CHINA_ZOOM_OUT_STEPS,
-  LOCAL_STYLE,
+  localStyle,
   MAP_STYLE_URL,
 } from "./mapStyle";
 import { applyMapConfig, basemapConfigured, BASEMAP_LABEL_SOURCE, BASEMAP_SOURCE, releaseMapConfig } from "./basemap";
@@ -49,6 +49,8 @@ import { cityFillOpacity, provinceFillOpacity } from "./paint";
 import { buildOverlayLayers, OVERLAY_SOURCES } from "./layers";
 import { useMapConfig } from "../lib/useMapConfig";
 import { mapDuration } from "../lib/motion";
+import type { Theme } from "../lib/theme";
+import { applyThemePaint } from "./theme";
 
 const CITY_LOAD_ZOOM = 5;
 const CITY_LABEL_VISITED_ZOOM = 5.2;
@@ -74,8 +76,11 @@ interface PlaceFeatureProperties {
 type PlaceCollection = FeatureCollection<GeoPoint, PlaceFeatureProperties>;
 type RouteCollection = FeatureCollection<LineString | GeoPoint, { name?: string; index?: number }>;
 
+export type MapPanelLayout = "none" | "left" | "center";
+
 export interface TravelMapHandle {
   focusPlace: (place: Place) => void;
+  focusRoute: (cities: RouteCity[]) => void;
   resetView: () => void;
 }
 
@@ -88,6 +93,9 @@ export interface TravelMapProps {
   activeTrip: Trip | null;
   /** Right-hand detail panel is open, so the national fit must leave room for it. */
   detailOpen?: boolean;
+  /** Which floating panel currently owns map space. */
+  panelLayout?: MapPanelLayout;
+  theme: Theme;
   onSelectPlace: (placeId: string) => void;
   onClearSelection: () => void;
 }
@@ -213,11 +221,15 @@ function ensureLayer(map: MapLibreMap, layer: LayerSpecification): void {
   if (!map.getLayer(layer.id)) map.addLayer(layer);
 }
 
-function addOverlayLayers(map: MapLibreMap, withBasemap: boolean): void {
+function addOverlayLayers(
+  map: MapLibreMap,
+  withBasemap: boolean,
+  theme: Theme,
+): void {
   for (const [id, spec] of Object.entries(OVERLAY_SOURCES)) {
     if (!map.getSource(id)) map.addSource(id, spec);
   }
-  for (const layer of buildOverlayLayers(withBasemap)) ensureLayer(map, layer);
+  for (const layer of buildOverlayLayers(withBasemap, theme)) ensureLayer(map, layer);
 }
 
 function syncFillOpacity(map: MapLibreMap, withBasemap: boolean): void {
@@ -269,19 +281,28 @@ function createClusterBadge(count: number): HTMLDivElement {
 type MapPadding = { top: number; right: number; bottom: number; left: number };
 
 /**
- * Padding for the national fit, measured from the live viewport so the
- * timeline, detail panel, top bar and mobile switch never cover the country.
+ * Padding for the national fit, measured from the live viewport so the nav,
+ * the active panel and the mobile bottom bar never cover the country. A pure
+ * map reserves no legacy sidebar space.
  */
-function computeFitPadding(detailOpen: boolean): MapPadding {
+function computeFitPadding(
+  panelLayout: MapPanelLayout,
+  detailOpen: boolean,
+): MapPadding {
   const width = window.innerWidth;
   const height = window.innerHeight;
   if (width <= 759) {
-    return { top: 84, right: 20, bottom: height >= 760 ? 170 : 150, left: 20 };
+    return { top: 76, right: 16, bottom: height >= 760 ? 156 : 146, left: 16 };
   }
-  if (width <= 1120) {
-    return { top: 92, right: detailOpen ? 366 : 40, bottom: 76, left: 352 };
-  }
-  return { top: 96, right: detailOpen ? 428 : 48, bottom: 84, left: 392 };
+  const compact = width <= 1120;
+  const sideSpace = compact ? 352 : 404;
+  const detailSpace = compact ? 360 : 420;
+  return {
+    top: 96,
+    right: detailOpen ? detailSpace : 28,
+    bottom: 88,
+    left: panelLayout === "left" ? sideSpace : 28,
+  };
 }
 
 export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
@@ -294,6 +315,8 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       selectedPlace,
       activeTrip,
       detailOpen = false,
+      panelLayout = "none",
+      theme,
       onSelectPlace,
       onClearSelection,
     },
@@ -321,6 +344,10 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
     const userMovedRef = useRef(false);
     const detailOpenRef = useRef(detailOpen);
     detailOpenRef.current = detailOpen;
+    const panelLayoutRef = useRef(panelLayout);
+    panelLayoutRef.current = panelLayout;
+    const themeRef = useRef(theme);
+    themeRef.current = theme;
 
     const [provinces, setProvinces] = useState<AdministrativeCollection | null>(null);
     const [provinceError, setProvinceError] = useState<string | null>(null);
@@ -360,7 +387,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
      */
     const fitChina = useCallback((map: MapLibreMap, duration: number) => {
       const camera = map.cameraForBounds(CHINA_VIEW_BOUNDS, {
-        padding: computeFitPadding(detailOpenRef.current),
+        padding: computeFitPadding(panelLayoutRef.current, detailOpenRef.current),
         maxZoom: 4.9,
       });
       if (!camera) return;
@@ -543,7 +570,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       const useExternalStyle = Boolean(MAP_STYLE_URL);
       const map = new MapLibreMap({
         container,
-        style: useExternalStyle ? MAP_STYLE_URL : LOCAL_STYLE,
+        style: useExternalStyle ? MAP_STYLE_URL : localStyle(themeRef.current),
         center: [104.2, 35.6],
         zoom: 3.6,
         minZoom: 1.4,
@@ -559,6 +586,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       map.on("style.load", () => {
         setStyleEpoch((value) => value + 1);
         setMapReady(true);
+        applyThemePaint(map, themeRef.current, withBasemapRef.current);
         if (!initialFitRef.current) {
           initialFitRef.current = true;
           fitChina(map, 0);
@@ -586,7 +614,7 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
           /style|sprite|glyph|source|load/i.test(message)
         ) {
           styleFallbackRef.current = true;
-          map.setStyle(LOCAL_STYLE);
+          map.setStyle(localStyle(themeRef.current));
         }
       });
 
@@ -614,8 +642,9 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       const map = mapRef.current;
       if (!map) return false;
       try {
-        addOverlayLayers(map, withBasemapRef.current);
+        addOverlayLayers(map, withBasemapRef.current, themeRef.current);
         syncFillOpacity(map, withBasemapRef.current);
+        applyThemePaint(map, themeRef.current, withBasemapRef.current);
 
         const data = dataRef.current;
         (map.getSource("provinces") as GeoJSONSource | undefined)?.setData(
@@ -669,13 +698,34 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
       if (!map || !mapReady || MAP_STYLE_URL) return;
       try {
         if (!basemapConfigured(mapConfig)) return;
-        const applied = applyMapConfig(map, mapConfig);
+        const applied = applyMapConfig(
+          map,
+          mapConfig,
+          undefined,
+          themeRef.current,
+        );
         if (applied) setBasemapError(false);
         syncFillOpacity(map, applied || withBasemap);
+        applyThemePaint(map, themeRef.current, applied || withBasemap);
       } catch {
         setBasemapError(true);
       }
     }, [mapReady, styleEpoch, mapConfig, basemapVersion, withBasemap]);
+
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !mapReady) return;
+      applyThemePaint(map, theme, withBasemapRef.current);
+      syncFillOpacity(map, withBasemapRef.current);
+    }, [theme, mapReady, styleEpoch, withBasemap]);
+
+    useEffect(() => {
+      if (!mapReady) return;
+      const map = mapRef.current;
+      if (!map) return;
+      if (!userMovedRef.current) fitChina(map, 320);
+      updateLabelVisibility();
+    }, [panelLayout, detailOpen, mapReady, fitChina, updateLabelVisibility]);
 
     useEffect(() => {
       const map = mapRef.current;
@@ -1039,6 +1089,50 @@ export const TravelMap = forwardRef<TravelMapHandle, TravelMapProps>(
             curve: 1.5,
             essential: true,
           });
+        },
+        focusRoute(cities: RouteCity[]) {
+          const map = mapRef.current;
+          if (!map) return;
+          const points = cities.filter(
+            (city) => Number.isFinite(city.lng) && Number.isFinite(city.lat),
+          );
+          if (points.length === 0) return;
+          if (points.length === 1) {
+            const city = points[0];
+            if (!city) return;
+            map.flyTo({
+              center: [city.lng, city.lat],
+              zoom: Math.max(map.getZoom(), 9.2),
+              duration: mapDuration(800),
+              essential: true,
+            });
+            return;
+          }
+          let west = Infinity;
+          let south = Infinity;
+          let east = -Infinity;
+          let north = -Infinity;
+          for (const city of points) {
+            west = Math.min(west, city.lng);
+            east = Math.max(east, city.lng);
+            south = Math.min(south, city.lat);
+            north = Math.max(north, city.lat);
+          }
+          map.fitBounds(
+            [
+              [west, south],
+              [east, north],
+            ],
+            {
+              padding: computeFitPadding(
+                panelLayoutRef.current,
+                detailOpenRef.current,
+              ),
+              maxZoom: 9.2,
+              duration: mapDuration(800),
+              essential: true,
+            },
+          );
         },
         resetView() {
           const map = mapRef.current;

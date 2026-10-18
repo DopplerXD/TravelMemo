@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { usePathname, navigate } from "./lib/router";
+import { usePathname, navigate, parsePublicRoute } from "./lib/router";
 import { PublicPage } from "./public/PublicPage";
 import { Brand } from "./components/Brand";
 import { Spinner } from "./components/Spinner";
@@ -25,8 +25,9 @@ function AdminLoading() {
 
 export function App() {
   const pathname = usePathname().replace(/\/+$/, "") || "/";
+  const publicRoute = parsePublicRoute(pathname);
 
-  if (pathname === "/") return <PublicPage />;
+  if (publicRoute) return <PublicPage route={publicRoute} />;
   if (pathname === "/admin") {
     return (
       <Suspense fallback={<AdminLoading />}>
