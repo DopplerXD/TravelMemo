@@ -153,16 +153,7 @@ export function PublicPage() {
     };
   }, [filteredEntries]);
 
-  const fitPadding = useMemo(() => {
-    if (typeof window === "undefined") return { top: 90, right: 70, bottom: 80, left: 70 };
-    if (window.innerWidth <= 759) {
-      return { top: 84, right: 22, bottom: 160, left: 22 };
-    }
-    if (window.innerWidth <= 1120) {
-      return { top: 96, right: 370, bottom: 70, left: 360 };
-    }
-    return { top: 96, right: 430, bottom: 80, left: 400 };
-  }, []);
+  const detailOpen = Boolean(selectedEntry || selectedPlace);
 
   const clearSelection = (): void => {
     setSelectedEntryId(null);
@@ -210,6 +201,10 @@ export function PublicPage() {
   };
 
   const resetView = (): void => {
+    // On a phone the timeline sheet covers the map, so "全国" first brings the
+    // map back and only then frames the country.
+    setMobileView("map");
+    setMobileExpanded(false);
     mapRef.current?.resetView();
   };
 
@@ -223,11 +218,15 @@ export function PublicPage() {
   };
 
   return (
-    <main className={`public-page public-page--view-${mobileView}`}>
+    <main
+      className={`public-page public-page--view-${mobileView}${
+        mobileView === "timeline" ? " public-page--sheet-open" : ""
+      }`}
+    >
       <TravelMap
         activeTrip={activeTrip}
+        detailOpen={detailOpen}
         entries={filteredEntries}
-        fitPadding={fitPadding}
         onClearSelection={clearSelection}
         onSelectPlace={selectPlace}
         places={mapPlaces}

@@ -2,8 +2,8 @@
 
 interface ImportMetaEnv {
   /**
-   * 可选：主控接入的街道底图样式地址（MapLibre style JSON URL）。
-   * 未配置时使用本地行政区矢量底图，只绘制中国范围。
+   * 可选：MapLibre style JSON 地址。未配置时使用本地行政区视图，
+   * 并按 /api/map-config 返回的栅格底图叠加街道层级。
    */
   readonly VITE_MAP_STYLE_URL?: string;
   /** 可选：底图样式加载失败时使用的备用样式地址。 */

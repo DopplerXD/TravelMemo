@@ -5,27 +5,11 @@ import type {
 
 type FillValue = number | ExpressionSpecification;
 
-/**
- * Fill opacity for the province layer.
- *
- * Without a basemap the administrative shapes *are* the map, so they stay
- * solid. With a street basemap the fills must step back as the camera zooms
- * in, otherwise a 0.9 opacity wash hides the basemap and its labels exactly
- * where the user needs them (roughly zoom 8 to 12).
- */
-export function provinceFillOpacity(
-  withBasemap: boolean,
-): DataDrivenPropertyValueSpecification<number> {
-  const visited: FillValue = withBasemap
-    ? ["interpolate", ["linear"], ["zoom"], 4, 0.9, 6, 0.62, 8, 0.32, 10, 0.14, 12, 0.03]
-    : 0.9;
-  const hover: FillValue = withBasemap
-    ? ["interpolate", ["linear"], ["zoom"], 4, 0.92, 8, 0.5, 10, 0.24, 12, 0.12]
-    : 0.92;
-  const unvisited: FillValue = withBasemap
-    ? ["interpolate", ["linear"], ["zoom"], 4, 0.8, 6, 0.5, 8, 0.24, 10, 0.1, 12, 0.02]
-    : 0.82;
-
+function caseValue(
+  hover: FillValue,
+  visited: FillValue,
+  unvisited: FillValue,
+): ExpressionSpecification {
   return [
     "case",
     ["boolean", ["feature-state", "hover"], false],
@@ -36,27 +20,81 @@ export function provinceFillOpacity(
   ] as unknown as ExpressionSpecification;
 }
 
+/**
+ * Fill opacity for the province layer.
+ *
+ * Without a basemap the administrative shapes *are* the map, so they stay
+ * solid. With a street basemap the fills must step back as the camera zooms
+ * in, otherwise a 0.9 opacity wash hides the basemap and its labels exactly
+ * where the user needs them (roughly zoom 8 to 12).
+ *
+ * The style specification only allows a zoom expression as the input of a
+ * top-level `interpolate`/`step`, so the hover/visited branches are the output
+ * values of each stop rather than wrapping the interpolation in a `case`.
+ */
+export function provinceFillOpacity(
+  withBasemap: boolean,
+): DataDrivenPropertyValueSpecification<number> {
+  if (!withBasemap) {
+    return caseValue(0.92, 0.9, 0.82);
+  }
+  const expression: ExpressionSpecification = [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    4,
+    caseValue(0.92, 0.9, 0.8),
+    6,
+    caseValue(0.66, 0.62, 0.5),
+    8,
+    caseValue(0.5, 0.32, 0.24),
+    10,
+    caseValue(0.24, 0.14, 0.1),
+    12,
+    caseValue(0.12, 0.03, 0.02),
+    22,
+    caseValue(0.12, 0.03, 0.02),
+  ];
+  return expression;
+}
+
 /** City fills follow the same rule, ending at 0.06 so streets stay readable. */
 export function cityFillOpacity(
   withBasemap: boolean,
 ): DataDrivenPropertyValueSpecification<number> {
-  const visited: FillValue = withBasemap
-    ? ["interpolate", ["linear"], ["zoom"], 5, 0.45, 6, 0.36, 8, 0.2, 10, 0.1, 12, 0.06]
-    : 0.45;
-  const hover: FillValue = withBasemap
-    ? ["interpolate", ["linear"], ["zoom"], 5, 0.34, 8, 0.22, 10, 0.14, 12, 0.1]
-    : 0.28;
+  const city = (visited: FillValue, hover: FillValue): ExpressionSpecification =>
+    [
+      "case",
+      ["boolean", ["get", "_municipality"], false],
+      0,
+      ["boolean", ["feature-state", "hover"], false],
+      hover,
+      ["boolean", ["get", "_visited"], false],
+      visited,
+      0,
+    ] as unknown as ExpressionSpecification;
 
-  return [
-    "case",
-    ["boolean", ["get", "_municipality"], false],
-    0,
-    ["boolean", ["feature-state", "hover"], false],
-    hover,
-    ["boolean", ["get", "_visited"], false],
-    visited,
-    0,
-  ] as unknown as ExpressionSpecification;
+  if (!withBasemap) {
+    return city(0.45, 0.28);
+  }
+  const expression: ExpressionSpecification = [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    5,
+    city(0.45, 0.34),
+    6,
+    city(0.36, 0.3),
+    8,
+    city(0.2, 0.22),
+    10,
+    city(0.1, 0.14),
+    12,
+    city(0.06, 0.1),
+    22,
+    city(0.06, 0.1),
+  ];
+  return expression;
 }
 
 /** Fill used by the admin location picker, which never draws footprint data. */

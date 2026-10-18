@@ -275,6 +275,7 @@ export function TripEditor({
               </label>
               <div className="route-adder__row">
                 <select
+                  aria-label="已有地点的城市"
                   disabled={placeCityOptions.length === 0 || addingPlaceCity}
                   id="route-place-city"
                   onChange={(event) => setPlaceCityKey(event.target.value)}
@@ -308,6 +309,7 @@ export function TripEditor({
               </label>
               <div className="route-adder__row route-adder__row--three">
                 <select
+                  aria-label="路线省份"
                   disabled={provinces.loading || Boolean(provinces.error)}
                   id="route-province"
                   onChange={(event) => {
@@ -324,6 +326,7 @@ export function TripEditor({
                   ))}
                 </select>
                 <select
+                  aria-label="路线城市"
                   disabled={!provinceCode || cities.loading}
                   onChange={(event) => setCityCode(event.target.value)}
                   value={cityCode}

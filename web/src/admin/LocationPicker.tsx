@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { loadProvinces, normalizeAdcode } from "../lib/geo";
 import { useMapConfig } from "../lib/useMapConfig";
 import type { MapConfig } from "../types";
-import { CHINA_MAX_BOUNDS, CHINA_VIEW_BOUNDS, LOCAL_STYLE, MAP_STYLE_URL } from "../map/mapStyle";
+import { CHINA_VIEW_BOUNDS, LOCAL_STYLE, MAP_STYLE_URL } from "../map/mapStyle";
 import { applyMapConfig, basemapConfigured } from "../map/basemap";
 import { pickerFillOpacity } from "../map/paint";
 import { Modal } from "../components/Modal";
@@ -36,9 +36,8 @@ function PickerMap({
       style: useExternalStyle ? MAP_STYLE_URL : LOCAL_STYLE,
       center: initial ? [initial.lng, initial.lat] : [104.2, 35.6],
       zoom: initial ? 9.5 : 3.6,
-      minZoom: 2.8,
+      minZoom: 1.6,
       maxZoom: 18,
-      maxBounds: CHINA_MAX_BOUNDS,
       renderWorldCopies: false,
       attributionControl: useExternalStyle ? { compact: true } : false,
       dragRotate: false,

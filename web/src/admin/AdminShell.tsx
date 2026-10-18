@@ -540,9 +540,9 @@ export function AdminShell({
         busy={deleting}
         message={
           deleteTarget?.type === "trips"
-            ? `确定删除「${deleteTarget.title}」吗？若仍有简记归入该旅行，服务器会拒绝删除。`
+            ? `确定删除「${deleteTarget.title}」吗？仍有关联简记的旅行无法删除，请先调整简记的旅行分组。`
             : deleteTarget?.type === "places"
-              ? `确定删除「${deleteTarget.title}」吗？仍被简记使用的地点无法删除。`
+              ? `确定删除「${deleteTarget.title}」吗？仍被简记使用的地点无法删除，请先调整相关简记。`
               : `确定删除「${deleteTarget?.title ?? ""}」吗？照片和正文会一并从公开页面移除。`
         }
         onCancel={() => {
