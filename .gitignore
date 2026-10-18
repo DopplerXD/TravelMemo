@@ -7,3 +7,4 @@ data/
 .worktrees/
 *.log
 .DS_Store
+backups/

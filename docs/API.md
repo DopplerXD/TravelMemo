@@ -20,3 +20,5 @@ POST /api/photos multipart 字段 file → Photo（单张，前端多次调用�
 主控提供 web/public/geo/provinces.json 与 web/public/geo/cities/{provinceCode}.json。GeoJSON properties 有 adcode、name、center。按省懒加载城市，用真实行政区轮廓。全国用本地矢量底图，具体街道底图由主控后续整合配置。Map 需独立组件，省市两级足迹填色、地图时间线联动、标点聚合、分组过滤和可选城市连线。管理页按 TravelMap 配色与 apple-design 技能实现。
 
 backend 分支只改 server/；frontend 分支只改 web/，不覆盖主控 geo 数据。验证后分阶段提交并报告 SHA、验证及问题。主控在 main 集成，禁止提交密钥、依赖、数据库和上传图片。
+
+地图运行时配置 GET /api/map-config → {tiles:string[],overlayTiles:string[],attribution:string,maxZoom:number}。通过 TDT_TOKEN 或 MAP_TILE_URL 设置 WGS84/CGCS2000 WebMercator XYZ 底图；未配置返回空数组，本地行政区视图仍可用。
