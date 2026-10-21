@@ -1,5 +1,4 @@
-
-name: Deploy to Baidu Cloud
+name: Deploy TravelMemo
 
 on:
   push:
@@ -10,46 +9,110 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-deploy
+  group: travelmemo-production
   cancel-in-progress: false
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
 
       - name: Configure SSH
         env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
           SSH_HOST_KEY: ${{ secrets.SERVER_HOST_KEY }}
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          printf '%s\n' "$SSH_HOST_KEY" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+          set -euo pipefail
+          : "${SERVER_HOST:?Missing SERVER_HOST}"
+          : "${SERVER_USER:?Missing SERVER_USER}"
+          : "${SSH_PRIVATE_KEY:?Missing SERVER_SSH_KEY}"
+          : "${SSH_HOST_KEY:?Missing SERVER_HOST_KEY}"
+          [[ "$SERVER_HOST" =~ ^[a-zA-Z0-9._:-]+$ ]]
+          [[ "$SERVER_USER" =~ ^[a-zA-Z0-9._-]+$ ]]
+          ssh_dir="$RUNNER_TEMP/travelmemo-ssh"
+          install -d -m 700 "$ssh_dir"
+          umask 077
+          printf '%s\n' "${SSH_PRIVATE_KEY//$'\r'/}" > "$ssh_dir/id"
+          printf '%s\n' "${SSH_HOST_KEY//$'\r'/}" > "$ssh_dir/known_hosts"
+          ssh-keygen -y -P '' -f "$ssh_dir/id" > /dev/null
+          ssh-keygen -l -f "$ssh_dir/known_hosts" > /dev/null
+          cat > "$ssh_dir/config" <<CONFIG
+          Host travelmemo-deploy
+            HostName $SERVER_HOST
+            User $SERVER_USER
+            Port 22
+            IdentityFile $ssh_dir/id
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile $ssh_dir/known_hosts
+            ConnectTimeout 15
+            ServerAliveInterval 15
+            ServerAliveCountMax 4
+          CONFIG
+
+      - name: Check server prerequisites
+        run: |
+          set -euo pipefail
+          ssh -F "$RUNNER_TEMP/travelmemo-ssh/config" travelmemo-deploy 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          command -v rsync > /dev/null
+          command -v curl > /dev/null
+          docker compose version
+          cd "$HOME/TravelMemo"
+          if [ ! -s .env ]; then
+            echo 'Missing ~/TravelMemo/.env; configure server credentials before deploying.' >&2
+            exit 1
+          fi
+          REMOTE
 
       - name: Upload project files
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
+          set -euo pipefail
           rsync -az \
             --exclude='.git/' \
             --exclude='.github/' \
             --exclude='.env' \
+            --include='.env.example' \
+            --exclude='.env.*' \
+            --exclude='node_modules/' \
+            --exclude='dist/' \
             --exclude='data/' \
-            -e 'ssh -i ~/.ssh/id_ed25519' \
-            ./ "$SERVER_USER@$SERVER_HOST:/opt/myapp/"
+            --exclude='backups/' \
+            --exclude='.worktrees/' \
+            --exclude='.artifacts/' \
+            --exclude='test-results/' \
+            --exclude='playwright-report/' \
+            -e "ssh -F '$RUNNER_TEMP/travelmemo-ssh/config'" \
+            ./ travelmemo-deploy:TravelMemo/
 
-      - name: Restart containers
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
+      - name: Build, deploy and verify
         run: |
-          ssh -i ~/.ssh/id_ed25519 \
-            "$SERVER_USER@$SERVER_HOST" \
-            'cd /opt/myapp && docker compose up -d --build'
+          set -euo pipefail
+          ssh -F "$RUNNER_TEMP/travelmemo-ssh/config" travelmemo-deploy 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd "$HOME/TravelMemo"
+          docker compose config --quiet
+          if ! docker compose up -d --build --wait --wait-timeout 120; then
+            docker compose ps
+            docker compose logs --no-color --tail 80 travelmemo
+            exit 1
+          fi
+          curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8015/api/health
+          REMOTE
+
+      - name: Remove SSH credentials
+        if: always()
+        run: rm -rf -- "$RUNNER_TEMP/travelmemo-ssh"
