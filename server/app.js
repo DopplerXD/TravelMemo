@@ -1,4 +1,5 @@
 import express from "express";
+import { mountProfile } from "./profile.js";
 import { createPoiSearch } from "./poi.js";
 import compression from "compression";
 import multer from "multer";
@@ -115,6 +116,7 @@ export function createApp(options = {}) {
     if (!sameOrigin(req)) return next(fail(403, "请求来源无效"));
     next();
   };
+  mountProfile(app, db, protect);
   const cookie = (req, value, maxAge) =>
     `travelmemo_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${options.secureCookies || process.env.COOKIE_SECURE === "true" ? "; Secure" : ""}`;
   const attempts = new Map();

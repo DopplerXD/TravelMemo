@@ -33,3 +33,9 @@ backend 分支只改 server/；frontend 分支只改 web/，不覆盖主控 geo 
 响应：`{"places":[{"id":"B...","name":"玄武湖公园","district":"玄武区","address":"玄武巷1号","lng":118.79,"lat":32.07}]}`。坐标为近似 WGS84，仅返回选定城市内有有效坐标的结果。5000 次额度由高德账户管理，本地缓存不等同于配额统计。
 
 400：参数无效；401/403：身份或 CSRF 验证失败；429：频率或额度限制；502：上游错误；503：未配置 `AMAP_WEB_SERVICE_KEY`。
+
+### 个人信息
+
+Profile: `{name,school,major,blog,ryot}`，五项均为字符串；文字最多 200 字符，链接最多 2048 字符，允许留空。
+
+`GET /api/profile` 公开读取 Profile；`PUT /api/profile` 以完整 Profile 更新，需要管理员会话、同源请求和 CSRF token，返回保存后的 Profile。Blog 和 Ryot 仅接受不含账号密码的 HTTP/HTTPS 绝对链接。初始信息仅在首次创建时写入 SQLite，重启不会覆盖管理员修改。Profile 独立于 catalog。

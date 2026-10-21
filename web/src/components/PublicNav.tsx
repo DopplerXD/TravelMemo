@@ -8,6 +8,7 @@ const TABS: Array<{ view: Exclude<PublicView, "map">; label: string; path: strin
   { view: "places", label: "Places", path: "/places" },
   { view: "timeline", label: "Timeline", path: "/timeline" },
   { view: "stats", label: "Stats", path: "/stats" },
+  { view: "info", label: "Info", path: "/info" },
 ];
 
 export function PublicNav({

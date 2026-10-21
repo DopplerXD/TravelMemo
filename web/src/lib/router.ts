@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export type PublicView = "map" | "trips" | "places" | "timeline" | "stats";
+export type PublicView = "map" | "trips" | "places" | "timeline" | "stats" | "info";
 
 export interface PublicRoute {
   view: PublicView;
@@ -9,7 +9,7 @@ export interface PublicRoute {
   entryId: string | null;
 }
 
-const PUBLIC_VIEWS = new Set<PublicView>(["trips", "places", "timeline", "stats"]);
+const PUBLIC_VIEWS = new Set<PublicView>(["trips", "places", "timeline", "stats", "info"]);
 
 /**
  * Turns the current pathname into a public view plus an optional detail id.
@@ -25,6 +25,7 @@ export function parsePublicRoute(pathname: string): PublicRoute | null {
   const [first, second, ...rest] = parts;
   if (!first || !PUBLIC_VIEWS.has(first as PublicView) || rest.length > 0) return null;
   const view = first as Exclude<PublicView, "map">;
+  if (view === "info" && second) return null;
   const id = second ?? null;
   return {
     view,
