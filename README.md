@@ -46,7 +46,7 @@ location / {
 }
 ```
 
-自动部署会先复用服务器构建缓存生成新镜像，再用 `--no-build --pull never` 启动服务。Dockerfile 固定 Node 24.22.0 的镜像摘要，避免浮动标签变化导致普通代码更新重新下载基础层。基础镜像的版本与摘要需要一起显式更新，以获取后续安全修复；首次构建、依赖变更或缓存清理后仍需要下载相应内容。
+自动部署会先复用服务器构建缓存生成新镜像，再用 `--no-build --pull never` 启动服务。Dockerfile 固定 Node 24.22.0 的镜像摘要，避免浮动标签变化导致普通代码更新重新下载基础层。基础镜像的版本与摘要需要一起显式更新，以获取后续安全修复；首次构建、依赖变更或缓存清理后仍需要下载相应内容。容器构建默认使用清华 Debian 主软件源，保留官方安全更新源；可用 `docker compose build --build-arg DEBIAN_MIRROR=http://deb.debian.org/debian` 切回官方主源。
 
 `travelmemo-data` 数据卷保存 SQLite、原始照片及网页图片。更新使用 `git pull` 后 `docker compose up -d --build`，保留数据卷。普通停止用 `docker compose down`；`down -v` 会删除旅行数据，不应作为更新步骤。
 
