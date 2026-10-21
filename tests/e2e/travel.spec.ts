@@ -94,7 +94,7 @@ test('管理地点、城市连线排序和删除确认', async ({ page, request 
   await dialog.getByLabel('地点名称', { exact: false }).fill(`${prefix}苏州平江路`);
   await dialog.locator('#place-province').selectOption('320000');
   await dialog.locator('#place-city').selectOption('320500');
-  await expect(dialog.locator('#place-lng')).not.toHaveValue('');
+  await expect(dialog.locator('#place-lng')).toHaveCount(0);
   await dialog.getByRole('button', { name: '创建地点', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByText(`${prefix}苏州平江路`, { exact: true })).toBeVisible();

@@ -11,7 +11,7 @@ export default defineConfig({
   retries: 0,
   timeout: 45000,
   use: {
-    baseURL: 'http://127.0.0.1:3011',
+    baseURL: 'http://127.0.0.1:3012',
     trace: 'retain-on-failure',
     launchOptions: {
       channel: 'chrome',
@@ -24,10 +24,10 @@ export default defineConfig({
   ],
   webServer: {
     command: 'node server/index.js',
-    url: 'http://127.0.0.1:3011/api/health',
+    url: 'http://127.0.0.1:3012/api/health',
     reuseExistingServer: false,
     env: {
-      PORT: '3011', DATA_DIR: dataDir, STATIC_DIR: process.env.TEST_STATIC_DIR ?? path.resolve('web/dist'),
+      PORT: '3012', DATA_DIR: dataDir, STATIC_DIR: process.env.TEST_STATIC_DIR ?? path.resolve('web/dist'),
       ADMIN_USERNAME: 'e2e-admin', ADMIN_PASSWORD: 'e2e-only-password-2026',
       COOKIE_SECURE: 'false', TRUST_PROXY: 'false',
     },

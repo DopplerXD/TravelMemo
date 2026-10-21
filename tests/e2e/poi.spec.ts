@@ -1,0 +1,48 @@
+import { test, expect } from '@playwright/test';
+
+test('POI 城市候选搜索与保存', async ({ page }, info) => {
+  let searches = 0;
+  await page.route('**/api/poi/search', async (route) => {
+    searches++;
+    expect(route.request().postDataJSON()).toEqual({ keywords: '玄武湖', cityCode: '320100' });
+    await route.fulfill({ json: { places: [{ id: 'B001', name: '玄武湖公园', district: '玄武区', address: '玄武巷1号', lng: 118.7968, lat: 32.0801 }] } });
+  });
+  await page.goto('/admin');
+  await page.getByLabel('账号', { exact: true }).fill('e2e-admin');
+  await page.getByLabel('密码', { exact: true }).fill('e2e-only-password-2026');
+  await page.getByRole('button', { name: '登录管理后台' }).click();
+  await page.getByRole('navigation', { name: '管理内容分类' }).getByRole('button', { name: /^地点/ }).click();
+  await page.locator('.admin-content__head').getByRole('button', { name: '新建地点', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.getByRole('button', { name: '搜索', exact: true })).toBeDisabled();
+  await dialog.locator('#place-province').selectOption('320000');
+  await dialog.locator('#place-city').selectOption('320100');
+  await dialog.locator('#poi-keywords').fill('玄武湖');
+  expect(searches).toBe(0);
+  await dialog.getByRole('button', { name: '搜索', exact: true }).click();
+  await expect(dialog.getByRole('list', { name: '候选地点' })).toContainText('玄武巷1号');
+  await page.screenshot({ path: `.artifacts/${info.project.name}-poi.png`, fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy();
+  await dialog.getByRole('button', { name: /玄武湖公园.*玄武区/ }).click();
+  await expect(dialog.locator('#place-name')).toHaveValue('玄武湖公园');
+  await expect(dialog.getByText('已选择：玄武湖公园', { exact: true })).toBeVisible();
+  await expect(dialog.locator('#place-lng')).toHaveCount(0);
+  const save = page.waitForResponse(response => response.url().endsWith('/api/places') && response.request().method() === 'POST');
+  await dialog.getByRole('button', { name: '创建地点', exact: true }).click();
+  const response = await save;
+  expect(response.status()).toBe(201);
+  const saved = await response.json();
+  expect(saved.lng).toBe(118.7968);
+  expect(saved.lat).toBe(32.0801);
+  expect(saved.cityCode).toBe('320100');
+  await expect(dialog).toHaveCount(0);
+  await page.locator('.admin-content__head').getByRole('button', { name: '新建地点', exact: true }).click();
+  await dialog.locator('#place-province').selectOption('320000');
+  await dialog.locator('#place-city').selectOption('320100');
+  await dialog.locator('#poi-keywords').fill('玄武湖');
+  await dialog.locator('#poi-keywords').press('Enter');
+  await expect(dialog.getByRole('list', { name: '候选地点' })).toBeVisible();
+  await dialog.locator('#place-city').selectOption('320500');
+  await expect(dialog.getByRole('list', { name: '候选地点' })).toHaveCount(0);
+  await expect(dialog.getByText('搜索范围：苏州市')).toBeVisible();
+});

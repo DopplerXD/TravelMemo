@@ -1,7 +1,9 @@
 import express from "express";
+import { createPoiSearch } from "./poi.js";
 import compression from "compression";
 import multer from "multer";
 import sharp from "sharp";
+import { decodeHeic } from "./heic.js";
 import { DatabaseSync } from "node:sqlite";
 import {
   randomBytes,
@@ -182,6 +184,13 @@ export function createApp(options = {}) {
     res.setHeader("Set-Cookie", cookie(req, "", 0));
     res.json({ ok: true });
   });
+  const searchPoi = createPoiSearch({
+    key: options.amapKey ?? process.env.AMAP_WEB_SERVICE_KEY,
+    fetchImpl: options.poiFetch ?? fetch,
+  });
+  app.post("/api/poi/search", protect, async (req, res) => {
+    res.json({ places: await searchPoi(req.body) });
+  });
   app.get("/api/catalog", (req, res) =>
     res.json({
       trips: all("trips"),
@@ -312,7 +321,7 @@ export function createApp(options = {}) {
     const id = randomUUID();
     let display, thumbnail, metadata;
     try {
-      const source = sharp(req.file.buffer, {
+      let source = sharp(req.file.buffer, {
         limitInputPixels: 50000000,
         animated: false,
       });
@@ -323,8 +332,20 @@ export function createApp(options = {}) {
         )
       )
         throw new Error();
+      if (
+        !metadata.width ||
+        !metadata.height ||
+        metadata.width * metadata.height > 50000000
+      ) {
+        throw fail(400, "照片尺寸过大，最多支持 5000 万像素");
+      }
+      const isHeic = metadata.format === "heif" && metadata.compression === "hevc";
+      if (isHeic) {
+        const decoded = await decodeHeic(req.file.buffer);
+        source = sharp(decoded, { limitInputPixels: 50000000, animated: false });
+      }
       display = await source
-        .rotate()
+        .rotate(isHeic ? 0 : undefined)
         .resize({
           width: 2048,
           height: 2048,
@@ -342,8 +363,9 @@ export function createApp(options = {}) {
         })
         .webp({ quality: 75 })
         .toBuffer();
-    } catch {
-      throw fail(400, "照片格式无效或尺寸过大");
+    } catch (error) {
+      if (error.status) throw error;
+      throw fail(400, "照片格式无效、文件损坏或尺寸过大");
     }
     const originalExtension =
       { jpeg: "jpg", heif: "heic" }[metadata.format] ?? metadata.format;

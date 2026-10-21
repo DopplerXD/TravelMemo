@@ -4,6 +4,7 @@ import type {
   MapConfig,
   Photo,
   Place,
+  PoiCandidate,
   SessionInfo,
   Trip,
 } from "./types";
@@ -89,6 +90,10 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const api = {
+  searchPoi: (keywords: string, cityCode: string, signal?: AbortSignal) =>
+    request<{ places: PoiCandidate[] }>("/api/poi/search", {
+      method: "POST", body: { keywords, cityCode }, signal,
+    }),
   health: () => request<{ ok: true }>("/api/health"),
   catalog: (signal?: AbortSignal) => request<Catalog>("/api/catalog", { signal }),
   entry: (id: string, signal?: AbortSignal) =>
