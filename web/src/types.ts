@@ -35,6 +35,7 @@ export interface Entry {
   id: string;
   title: string;
   date: string;
+  endDate?: string;
   placeId: string;
   tripId: string | null;
   body: string;
@@ -74,4 +75,12 @@ export interface PoiCandidate {
   district: string;
   lng: number;
   lat: number;
+}
+
+export interface Profile {
+  name: string;
+  school: string;
+  major: string;
+  blog: string;
+  ryot: string;
 }

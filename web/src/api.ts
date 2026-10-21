@@ -1,4 +1,5 @@
 import type {
+  Profile,
   Catalog,
   Entry,
   MapConfig,
@@ -90,6 +91,8 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const api = {
+  profile: (signal?: AbortSignal) => request<Profile>("/api/profile", { signal }),
+  updateProfile: (profile: Profile) => request<Profile>("/api/profile", { method: "PUT", body: profile }),
   searchPoi: (keywords: string, cityCode: string, signal?: AbortSignal) =>
     request<{ places: PoiCandidate[] }>("/api/poi/search", {
       method: "POST", body: { keywords, cityCode }, signal,

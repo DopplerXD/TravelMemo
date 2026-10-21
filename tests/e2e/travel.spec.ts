@@ -55,7 +55,7 @@ test('公开地图、多次到访、在线保存与照片浏览', async ({ page,
   await page.getByRole('button', { name: '新建简记', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByLabel('标题', { exact: false }).fill(`${prefix}手机新记录`);
-  await dialog.getByLabel('日期', { exact: false }).fill('2026-10-19');
+  await dialog.getByLabel('开始日期', { exact: false }).fill('2026-10-19');
   await dialog.getByLabel('地点', { exact: false }).selectOption(place.id);
   await dialog.getByLabel('旅行分组', { exact: false }).selectOption(trip2.id);
   await dialog.getByLabel('正文', { exact: true }).fill('保存后即可公开浏览');
@@ -122,7 +122,7 @@ test('管理地点、城市连线排序和删除确认', async ({ page, request 
   expect((await request.get('/api/catalog')).ok()).toBeTruthy();
 });
 
-test('运行时底图配置可加载且无地图表达式错误', async ({ page }) => {
+test('运行时底图配置可加载且无地图表达式错误', async ({ page, baseURL }) => {
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });

@@ -1,9 +1,11 @@
 import express from "express";
+import { mountProfile } from "./profile.js";
 import { createPoiSearch } from "./poi.js";
 import compression from "compression";
 import multer from "multer";
 import sharp from "sharp";
 import { decodeHeic } from "./heic.js";
+import { normalizeEntryDates, withEntryDates } from "./entry-dates.js";
 import { DatabaseSync } from "node:sqlite";
 import {
   randomBytes,
@@ -77,13 +79,17 @@ export function createApp(options = {}) {
       throw fail(400, "内容标识无效");
     const row = db.prepare(`SELECT data FROM ${table} WHERE id=?`).get(id);
     if (!row) throw fail(404, "内容不存在");
-    return JSON.parse(row.data);
+    const value = JSON.parse(row.data);
+    return table === "entries" ? withEntryDates(value) : value;
   };
   const all = (table) =>
     db
       .prepare(`SELECT data FROM ${table}`)
       .all()
-      .map((row) => JSON.parse(row.data));
+      .map((row) => {
+        const value = JSON.parse(row.data);
+        return table === "entries" ? withEntryDates(value) : value;
+      });
   const cookieId = (req) =>
     req.headers.cookie
       ?.split(";")
@@ -115,6 +121,7 @@ export function createApp(options = {}) {
     if (!sameOrigin(req)) return next(fail(403, "请求来源无效"));
     next();
   };
+  mountProfile(app, db, protect);
   const cookie = (req, value, maxAge) =>
     `travelmemo_session=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${options.secureCookies || process.env.COOKIE_SECURE === "true" ? "; Secure" : ""}`;
   const attempts = new Map();
@@ -243,13 +250,7 @@ export function createApp(options = {}) {
         lat: coordinate(input.lat, 90),
       };
     }
-    const date = text(input.date, 10);
-    if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
-      !Number.isFinite(Date.parse(date)) ||
-      new Date(date).toISOString().slice(0, 10) !== date
-    )
-      throw fail(400, "日期无效");
+    const { date, endDate } = normalizeEntryDates(input);
     if (
       typeof input.placeId !== "string" ||
       (input.tripId !== null && typeof input.tripId !== "string")
@@ -274,6 +275,7 @@ export function createApp(options = {}) {
       id,
       title: text(input.title, 200),
       date,
+      endDate,
       placeId: input.placeId,
       tripId: input.tripId || null,
       body: text(input.body ?? "", 50000, false),

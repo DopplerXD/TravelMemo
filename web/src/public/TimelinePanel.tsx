@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { EntrySummary, Place, Trip } from "../types";
-import { parseDate, pluralPhotos } from "../lib/date";
+import { formatDateRange, parseDate, pluralPhotos } from "../lib/date";
 import {
   CalendarIcon,
   CompassIcon,
@@ -212,8 +212,8 @@ export function TimelinePanel({
                           <span className="timeline-card__body">
                             <span className="timeline-card__date">
                               <CalendarIcon />
-                              {date.full}
-                              {date.weekday ? ` · ${date.weekday}` : ""}
+                              {formatDateRange(entry.date, entry.endDate ?? entry.date)}
+                              {date.weekday && (!entry.endDate || entry.endDate === entry.date) ? ` · ${date.weekday}` : ""}
                             </span>
                             <span className="timeline-card__place">
                               <MapPinIcon />
