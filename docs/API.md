@@ -24,3 +24,12 @@ backend 分支只改 server/；frontend 分支只改 web/，不覆盖主控 geo 
 地图运行时配置 GET /api/map-config → {tiles:string[],overlayTiles:string[],attribution:string,maxZoom:number}。通过 TDT_TOKEN 或 MAP_TILE_URL 设置 WGS84/CGCS2000 WebMercator XYZ 底图；未配置返回空数组，本地行政区视图仍可用。
 
 照片上传支持 JPEG、PNG、WebP、AVIF、TIFF 和 HEIC。HEIC 依赖服务端 `heif-convert` 的 HEVC 解码能力，Docker 镜像已内置；所有格式返回 WebP 展示图与缩略图。HEIC 转换繁忙时返回 429，解码失败或解码依赖缺失时返回 422，并附重试或转为 JPG 的提示。
+
+
+### POST /api/poi/search
+
+需要管理员会话、同源请求与 CSRF token。请求体：`{"keywords":"玄武湖","cityCode":"320100"}`。
+
+响应：`{"places":[{"id":"B...","name":"玄武湖公园","district":"玄武区","address":"玄武巷1号","lng":118.79,"lat":32.07}]}`。坐标为近似 WGS84，仅返回选定城市内有有效坐标的结果。5000 次额度由高德账户管理，本地缓存不等同于配额统计。
+
+400：参数无效；401/403：身份或 CSRF 验证失败；429：频率或额度限制；502：上游错误；503：未配置 `AMAP_WEB_SERVICE_KEY`。

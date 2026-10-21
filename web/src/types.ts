@@ -66,3 +66,12 @@ export interface MapConfig {
 }
 
 export type AdminTab = "entries" | "trips" | "places";
+
+export interface PoiCandidate {
+  id: string;
+  name: string;
+  address: string;
+  district: string;
+  lng: number;
+  lat: number;
+}

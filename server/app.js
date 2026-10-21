@@ -1,4 +1,5 @@
 import express from "express";
+import { createPoiSearch } from "./poi.js";
 import compression from "compression";
 import multer from "multer";
 import sharp from "sharp";
@@ -182,6 +183,13 @@ export function createApp(options = {}) {
     db.prepare("DELETE FROM sessions WHERE id=?").run(req.session.id);
     res.setHeader("Set-Cookie", cookie(req, "", 0));
     res.json({ ok: true });
+  });
+  const searchPoi = createPoiSearch({
+    key: options.amapKey ?? process.env.AMAP_WEB_SERVICE_KEY,
+    fetchImpl: options.poiFetch ?? fetch,
+  });
+  app.post("/api/poi/search", protect, async (req, res) => {
+    res.json({ places: await searchPoi(req.body) });
   });
   app.get("/api/catalog", (req, res) =>
     res.json({

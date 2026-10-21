@@ -9,9 +9,8 @@ import {
 import { useCities, useProvinces } from "../lib/useGeo";
 import { Modal } from "../components/Modal";
 import { Spinner } from "../components/Spinner";
-import { MapPinIcon } from "../icons";
 import { Field, FormAlert } from "./FormBits";
-import { LocationPicker } from "./LocationPicker";
+import { PoiSearch } from "./PoiSearch";
 
 interface Option {
   code: string;
@@ -44,8 +43,6 @@ interface PlaceErrors {
   province?: string;
   cityCode?: string;
   city?: string;
-  lng?: string;
-  lat?: string;
 }
 
 export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEditorProps) {
@@ -61,7 +58,6 @@ export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEd
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [errors, setErrors] = useState<PlaceErrors>({});
-  const [pickerOpen, setPickerOpen] = useState(false);
 
   const provinceOptions = useMemo(() => toOptions(provinces.data), [provinces.data]);
   const cityOptions = useMemo(() => toOptions(cities.data), [cities.data]);
@@ -86,11 +82,11 @@ export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEd
     if (!only) return;
     setCityCode(only.code);
     setCityName(only.name);
-    if (only.center && !lng && !lat) {
+    if (only.center) {
       setLng(only.center[0].toFixed(6));
       setLat(only.center[1].toFixed(6));
     }
-  }, [cities.data, cityCode, cityOptions, lat, lng]);
+  }, [cities.data, cityCode, cityOptions]);
 
   const chooseProvince = (code: string): void => {
     setProvinceCode(code);
@@ -98,6 +94,8 @@ export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEd
     setProvinceName(option?.name ?? "");
     setCityCode("");
     setCityName("");
+    setLng("");
+    setLat("");
     setErrors((current) => ({ ...current, provinceCode: undefined, province: undefined }));
   };
 
@@ -105,18 +103,9 @@ export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEd
     setCityCode(code);
     const option = cityOptions.find((item) => item.code === code);
     setCityName(option?.name ?? "");
-    if (option?.center && (!lng || !lat)) {
-      setLng(option.center[0].toFixed(6));
-      setLat(option.center[1].toFixed(6));
-    }
+    setLng(option?.center ? option.center[0].toFixed(6) : "");
+    setLat(option?.center ? option.center[1].toFixed(6) : "");
     setErrors((current) => ({ ...current, cityCode: undefined, city: undefined }));
-  };
-
-  const useCityCenter = (): void => {
-    const option = cityOptions.find((item) => item.code === cityCode);
-    if (!option?.center) return;
-    setLng(option.center[0].toFixed(6));
-    setLat(option.center[1].toFixed(6));
   };
 
   const validate = (): boolean => {
@@ -128,11 +117,9 @@ export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEd
     if (!cityName.trim()) next.city = "请选择或填写城市";
     const lngNumber = Number(lng);
     const latNumber = Number(lat);
-    if (!Number.isFinite(lngNumber) || lngNumber < 70 || lngNumber > 140) {
-      next.lng = "经度应在 70 到 140 之间";
-    }
-    if (!Number.isFinite(latNumber) || latNumber < 0 || latNumber > 56) {
-      next.lat = "纬度应在 0 到 56 之间";
+    if (!lng || !lat || !Number.isFinite(lngNumber) || lngNumber < 70 || lngNumber > 140 ||
+        !Number.isFinite(latNumber) || latNumber < 0 || latNumber > 56) {
+      next.city = "城市位置暂不可用，请重新加载城市数据后选择";
     }
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -170,8 +157,6 @@ export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEd
     }
   };
 
-  const canUsePicker = Number.isFinite(Number(lng)) && Number.isFinite(Number(lat));
-
   return (
     <Modal
       closeDisabled={saving}
@@ -192,7 +177,7 @@ export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEd
       onClose={onClose}
       open
       size="lg"
-      subtitle="省市代码来自本地行政区数据，坐标使用 WGS84。"
+      subtitle="选择城市后搜索具体地点，也可使用城市中心。"
       title={place ? "编辑地点" : "新建地点"}
     >
       <div className="editor-form">
@@ -288,7 +273,11 @@ export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEd
                   aria-label="城市代码"
                   inputMode="numeric"
                   maxLength={6}
-                  onChange={(event) => setCityCode(event.target.value.replace(/\D/g, ""))}
+                  onChange={(event) => {
+                    setCityCode(event.target.value.replace(/\D/g, ""));
+                    setLng("");
+                    setLat("");
+                  }}
                   placeholder="城市代码 320100"
                   value={cityCode}
                 />
@@ -319,6 +308,26 @@ export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEd
           </Field>
         </div>
 
+        <PoiSearch
+          key={`${provinceCode}:${cityCode}`}
+          cityCode={cityCode}
+          cityName={cityName}
+          initialQuery={name}
+          disabled={saving}
+          onUnauthorized={onUnauthorized}
+          onCityCenter={cityOptions.find((option) => option.code === cityCode)?.center ? () => {
+            const center = cityOptions.find((option) => option.code === cityCode)!.center!;
+            setLng(center[0].toFixed(6));
+            setLat(center[1].toFixed(6));
+          } : undefined}
+          onSelect={(poi) => {
+            setName(poi.name);
+            setLng(String(poi.lng));
+            setLat(String(poi.lat));
+            setErrors((current) => ({ ...current, name: undefined, city: undefined }));
+          }}
+        />
+
         {provinceFallback ? (
           <div className="inline-callout inline-callout--warning">
             <p>行政区数据暂不可用，可以使用手动方式填写六位代码。</p>
@@ -338,78 +347,8 @@ export function PlaceEditor({ place, onClose, onSaved, onUnauthorized }: PlaceEd
         {provinces.error ? <FormAlert message={provinces.error} /> : null}
         {cities.error && !provinceFallback ? <FormAlert message={cities.error} /> : null}
 
-        <div className="coordinate-block">
-          <div className="coordinate-block__head">
-            <div>
-              <h3>经纬度</h3>
-              <p>在地图上选点，或直接输入 WGS84 坐标。</p>
-            </div>
-            <div className="coordinate-block__actions">
-              <button
-                className="btn btn--soft btn--sm"
-                disabled={!cityCode}
-                onClick={useCityCenter}
-                type="button"
-              >
-                使用城市中心
-              </button>
-              <button
-                className="btn btn--soft btn--sm"
-                onClick={() => setPickerOpen(true)}
-                type="button"
-              >
-                <MapPinIcon />
-                地图选点
-              </button>
-            </div>
-          </div>
-          <div className="form-grid form-grid--coords">
-            <Field error={errors.lng} htmlFor="place-lng" label="经度 Lng" required>
-              <input
-                id="place-lng"
-                inputMode="decimal"
-                onChange={(event) => {
-                  setLng(event.target.value);
-                  if (errors.lng) setErrors((current) => ({ ...current, lng: undefined }));
-                }}
-                placeholder="118.796877"
-                step="0.000001"
-                type="number"
-                value={lng}
-              />
-            </Field>
-            <Field error={errors.lat} htmlFor="place-lat" label="纬度 Lat" required>
-              <input
-                id="place-lat"
-                inputMode="decimal"
-                onChange={(event) => {
-                  setLat(event.target.value);
-                  if (errors.lat) setErrors((current) => ({ ...current, lat: undefined }));
-                }}
-                placeholder="32.060255"
-                step="0.000001"
-                type="number"
-                value={lat}
-              />
-            </Field>
-          </div>
-        </div>
       </div>
 
-      <LocationPicker
-        initial={
-          canUsePicker
-            ? { lng: Number(lng), lat: Number(lat) }
-            : null
-        }
-        onClose={() => setPickerOpen(false)}
-        onConfirm={(coords) => {
-          setLng(coords.lng.toFixed(6));
-          setLat(coords.lat.toFixed(6));
-          setPickerOpen(false);
-        }}
-        open={pickerOpen}
-      />
     </Modal>
   );
 }

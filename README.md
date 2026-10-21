@@ -79,3 +79,16 @@ sh scripts/restore.sh backups/travelmemo-YYYYMMDD-HHMMSS.tar.gz
 ## 开发协作
 
 `main` 由主控负责集成、部署和验收；`feat/backend` 由 6.1-sol 负责 `server/`，`feat/frontend` 通过 pi CLI 的 deepseek-flash 负责 `web/`。各分支使用独立工作树，按接口约定分别提交，再由主控合并；导航与主题改版由 pi CLI 在 `feat/travelmap-navigation` 完成。前端展示页参考 TravelMap，管理页结合其配色与 Apple Design 的反馈、材质、排版和减少动态效果支持。
+
+
+### 高德 POI 搜索开发副本
+
+此副本使用分支 `codex/amap-poi`，开发前端端口为 5174，后端端口为 8016，数据目录为副本内的 `server/data`。
+
+在本目录 `.env` 中设置 `AMAP_WEB_SERVICE_KEY`，使用高德「Web 服务」类型 Key（不是 Web 端 JS API Key）。运行 `npm run install:all`、`npm run dev`，访问 http://127.0.0.1:5174/admin。
+
+新建或编辑地点时，先选城市，再在「搜索具体地点」中输入关键词，点击搜索或按回车。选择候选地点会填入名称与位置；未选 POI 时继续使用城市中心，编辑已有地点则保留原位置。切换城市会重置为新城市中心。
+
+后端调用高德 v3 关键字搜索，一次返回最多 10 个候选地点。仅管理员登录后可搜索，Key 不传给浏览器。相同城市和关键词的结果在进程内缓存 10 分钟，未命中缓存的请求间隔至少 1 秒；输入文字不会自动发请求。高德 GCJ-02 坐标近似转换为 WGS84 后保存，不改变现有地点结构。此版本不接入输入提示、周边搜索或 POI 2.0。
+
+测试使用模拟高德响应，不消耗真实额度；真实 Key 的权限、额度和网络连通性需要配置后验证。
