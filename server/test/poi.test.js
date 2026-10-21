@@ -19,7 +19,9 @@ test("search scopes to city, converts coordinates, filters invalid results and c
     assert.equal(url.searchParams.get("citylimit"), "true");
     assert.equal(url.searchParams.get("keywords"), "玄武湖");
     assert.ok(options.signal);
-    return Response.json({ status: "1", pois: [poi, { ...poi, id: "outside", adcode: "310101" }, { ...poi, location: "" }, { ...poi, location: "x,y" }, { ...poi, location: "," }] });
+    const candidate = { ...poi };
+    if (url.searchParams.get("extensions") !== "all") delete candidate.adcode;
+    return Response.json({ status: "1", pois: [candidate, { ...poi, id: "outside", adcode: "310101" }, { ...poi, location: "" }, { ...poi, location: "x,y" }, { ...poi, location: "," }] });
   } });
   const results = await search({ keywords: " 玄武湖 ", cityCode: "320100" });
   assert.equal(results.length, 1);
