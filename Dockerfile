@@ -8,6 +8,8 @@ RUN npm run build
 FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production PORT=8015 DATA_DIR=/app/data STATIC_DIR=/app/web/dist
 WORKDIR /app/server
+RUN apt-get update && apt-get install -y --no-install-recommends libheif-examples \
+    && rm -rf /var/lib/apt/lists/*
 COPY server/package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY server/ ./

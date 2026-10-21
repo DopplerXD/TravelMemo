@@ -22,3 +22,5 @@ POST /api/photos multipart 字段 file → Photo（单张，前端多次调用�
 backend 分支只改 server/；frontend 分支只改 web/，不覆盖主控 geo 数据。验证后分阶段提交并报告 SHA、验证及问题。主控在 main 集成，禁止提交密钥、依赖、数据库和上传图片。
 
 地图运行时配置 GET /api/map-config → {tiles:string[],overlayTiles:string[],attribution:string,maxZoom:number}。通过 TDT_TOKEN 或 MAP_TILE_URL 设置 WGS84/CGCS2000 WebMercator XYZ 底图；未配置返回空数组，本地行政区视图仍可用。
+
+照片上传支持 JPEG、PNG、WebP、AVIF、TIFF 和 HEIC。HEIC 依赖服务端 `heif-convert` 的 HEVC 解码能力，Docker 镜像已内置；所有格式返回 WebP 展示图与缩略图。HEIC 转换繁忙时返回 429，解码失败或解码依赖缺失时返回 422，并附重试或转为 JPG 的提示。

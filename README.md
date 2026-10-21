@@ -54,6 +54,12 @@ location / {
 
 无地图令牌时，行政区足迹、地点标点和旅行连线仍可使用。上线时需从北京服务器和手机网络验证瓦片、缩略图及上传，开发机器无法代替这一环境验收。
 
+### HEIC 照片
+
+支持上传苹果 HEIC 照片，服务端自动生成 WebP 展示图和缩略图，原始 HEIC 仅保留在数据卷中。单张上限 20 MiB、5000 万像素；HEIC 转换一次处理一张，忙碌时可稍后重试。
+
+Docker 镜像已包含解码工具。已有部署需执行 `docker compose up -d --build`，仅重启旧容器不会安装新依赖。非 Docker 开发需安装 `heif-convert` 及 HEVC 解码支持：Debian/Ubuntu 使用 `sudo apt-get install libheif-examples`，macOS 使用 `brew install libheif`。安装后执行 `heif-convert --help` 确认命令可用。运行 `REQUIRE_HEIC=1 npm test --prefix server` 可强制验证 HEIC 解码与上传；测试使用合成色块图片，不含个人照片。
+
 ### 备份和恢复
 
 ```sh
