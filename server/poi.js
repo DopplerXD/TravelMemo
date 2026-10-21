@@ -45,7 +45,7 @@ export function createPoiSearch({ key, fetchImpl = fetch }) {
     if (now - lastRequest < 1000) throw fail(429, "搜索过于频繁，请稍后重试");
     lastRequest = now;
     const url = new URL("https://restapi.amap.com/v3/place/text");
-    url.search = new URLSearchParams({ key, keywords: query, city: cityCode, citylimit: "true", offset: "10", page: "1", extensions: "base", output: "JSON" });
+    url.search = new URLSearchParams({ key, keywords: query, city: cityCode, citylimit: "true", offset: "10", page: "1", extensions: "all", output: "JSON" });
     let data;
     try {
       const response = await fetchImpl(url, { signal: AbortSignal.timeout(8000) });
