@@ -105,7 +105,8 @@ jobs:
           set -euo pipefail
           cd "$HOME/TravelMemo"
           docker compose config --quiet
-          if ! docker compose up -d --build --wait --wait-timeout 120; then
+          docker compose --progress plain build --pull=false travelmemo
+          if ! docker compose up -d --no-build --pull never --wait --wait-timeout 120; then
             docker compose ps
             docker compose logs --no-color --tail 80 travelmemo
             exit 1

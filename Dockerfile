@@ -1,11 +1,11 @@
-FROM node:24-bookworm-slim AS web-build
+FROM node:24.22.0-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS web-build
 WORKDIR /build/web
 COPY web/package*.json ./
 RUN npm ci
 COPY web/ ./
 RUN npm run build
 
-FROM node:24-bookworm-slim AS runtime
+FROM node:24.22.0-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5 AS runtime
 ENV NODE_ENV=production PORT=8015 DATA_DIR=/app/data STATIC_DIR=/app/web/dist
 WORKDIR /app/server
 RUN apt-get update && apt-get install -y --no-install-recommends libheif-examples \
