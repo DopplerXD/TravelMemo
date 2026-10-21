@@ -80,7 +80,7 @@ select,
 textarea {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: var(--field-bg);
+  background-color: var(--field-bg);
   min-height: 44px;
   padding: 10px 12px;
   transition:
@@ -105,7 +105,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--accent);
-  background: var(--field-bg-focus);
+  background-color: var(--field-bg-focus);
   box-shadow: 0 0 0 3px var(--focus-ring-soft);
 }
 
