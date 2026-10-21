@@ -23,6 +23,7 @@ import { TripDetail } from "./TripDetail";
 import { PlacesBrowser } from "./PlacesBrowser";
 import { TimelinePanel } from "./TimelinePanel";
 import { StatsPanel } from "./StatsPanel";
+import { InfoPanel } from "./InfoPanel";
 import { EntryDetail } from "./EntryDetail";
 import { PlacePanel } from "./PlacePanel";
 
@@ -164,7 +165,7 @@ export function PublicPage({ route }: { route: PublicRoute }) {
     selectedEntry || (routePlace && route.view === "places"),
   );
   const panelLayout: MapPanelLayout =
-    route.view === "timeline" || route.view === "stats"
+    route.view === "timeline" || route.view === "stats" || route.view === "info"
       ? "center"
       : route.view === "trips" || route.view === "places"
         ? "left"
@@ -324,6 +325,8 @@ export function PublicPage({ route }: { route: PublicRoute }) {
           trips={trips}
         />
       ) : null}
+
+      {route.view === "info" ? <InfoPanel /> : null}
 
       {selectedEntry ? (
         <EntryDetail

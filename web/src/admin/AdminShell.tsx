@@ -25,6 +25,7 @@ import {
 import { EntryEditor } from "./EntryEditor";
 import { PlaceEditor } from "./PlaceEditor";
 import { TripEditor } from "./TripEditor";
+import { ProfileEditor } from "./ProfileEditor";
 
 type EditorState =
   | { type: "entry"; id: string | null }
@@ -44,7 +45,8 @@ interface ToastState {
   message: string;
 }
 
-const TAB_COPY: Record<AdminTab, { title: string; eyebrow: string; description: string; action: string }> = {
+const TAB_COPY: Record<AdminTab | "profile", { title: string; eyebrow: string; description: string; action: string }> = {
+  profile: { title: "个人信息", eyebrow: "Info", description: "维护公开个人信息，保存后立即更新。", action: "" },
   entries: {
     title: "旅行简记",
     eyebrow: "简记",
@@ -80,7 +82,7 @@ export function AdminShell({
   onLogout: () => Promise<void>;
   onSessionExpired: () => void;
 }) {
-  const [tab, setTab] = useState<AdminTab>("entries");
+  const [tab, setTab] = useState<AdminTab | "profile">("entries");
   const [editor, setEditor] = useState<EditorState>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteState | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -229,7 +231,7 @@ export function AdminShell({
             <p>保存后立即同步到公开地图。</p>
           </div>
           <nav aria-label="管理内容分类" className="admin-tabs">
-            {(["entries", "trips", "places"] as AdminTab[]).map((item) => {
+            {(["entries", "trips", "places", "profile"] as const).map((item) => {
               const itemCopy = TAB_COPY[item];
               return (
                 <button
@@ -243,9 +245,10 @@ export function AdminShell({
                     {item === "entries" ? <CalendarIcon /> : null}
                     {item === "trips" ? <RouteIcon /> : null}
                     {item === "places" ? <MapPinIcon /> : null}
+                    {item === "profile" ? <CompassIcon /> : null}
                   </span>
                   <span className="admin-tab__label">{itemCopy.title}</span>
-                  <span className="admin-tab__count">{tabCounts[item]}</span>
+                  {item !== "profile" ? <span className="admin-tab__count">{tabCounts[item]}</span> : null}
                 </button>
               );
             })}
@@ -259,15 +262,15 @@ export function AdminShell({
               <h1>{copy.title}</h1>
               <p>{copy.description}</p>
             </div>
-            <button className="btn btn--primary" onClick={openNew} type="button">
+            {tab !== "profile" ? <button className="btn btn--primary" onClick={openNew} type="button">
               <PlusIcon />
               {copy.action}
-            </button>
+            </button> : null}
           </header>
 
           {refreshing ? <div className="admin-progress" aria-label="正在刷新内容" /> : null}
 
-          {error && !catalog ? (
+          {tab === "profile" ? <ProfileEditor onUnauthorized={onSessionExpired} /> : error && !catalog ? (
             <ErrorState
               message={error}
               onRetry={reload}

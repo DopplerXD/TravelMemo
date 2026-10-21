@@ -76,3 +76,11 @@ export interface PoiCandidate {
   lng: number;
   lat: number;
 }
+
+export interface Profile {
+  name: string;
+  school: string;
+  major: string;
+  blog: string;
+  ryot: string;
+}
