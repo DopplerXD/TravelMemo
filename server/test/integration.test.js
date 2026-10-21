@@ -195,6 +195,19 @@ test("authentication, CRUD, images, references and restart persistence", async (
     assert.equal(saved.status, 201);
     const entry = await saved.json();
     assert.equal(entry.photos[0].url, photo.url);
+    assert.equal(entry.endDate, entry.date);
+    for (const endDate of ["2026-10-17", "2026-02-30", "", null, 20261019]) {
+      assert.equal((await request("/api/entries", "POST", { ...entryInput, endDate })).status, 400);
+    }
+    const legacy = { ...entry };
+    delete legacy.endDate;
+    instance.db.prepare("UPDATE entries SET data=? WHERE id=?").run(JSON.stringify(legacy), entry.id);
+    const legacyRead = await (await request(`/api/entries/${entry.id}`)).json();
+    assert.equal(legacyRead.endDate, legacy.date);
+    assert.equal((await (await request("/api/catalog")).json()).entries[0].endDate, legacy.date);
+    assert.equal(JSON.parse(instance.db.prepare("SELECT data FROM entries WHERE id=?").get(entry.id).data).endDate, undefined);
+    const range = { ...entryInput, date: "2026-12-31", endDate: "2027-01-02" };
+    assert.equal((await request(`/api/entries/${entry.id}`, "PUT", range)).status, 200);
     assert.equal(
       (
         await request("/api/entries", "POST", {
@@ -231,6 +244,8 @@ test("authentication, CRUD, images, references and restart persistence", async (
       (await (await request(`/api/entries/${entry.id}`)).json()).body,
       "沿河散步",
     );
+    assert.equal((await (await request(`/api/entries/${entry.id}`)).json()).endDate, "2027-01-02");
+    assert.equal((await (await request("/api/catalog")).json()).entries[0].endDate, "2027-01-02");
     assert.equal((await fetch(base + photo.url)).status, 200);
     assert.equal(
       (await (await request("/api/session")).json()).authenticated,

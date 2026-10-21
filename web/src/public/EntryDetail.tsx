@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { EntrySummary, Place, Trip } from "../types";
-import { parseDate, pluralPhotos } from "../lib/date";
+import { formatDateRange, parseDate, pluralPhotos } from "../lib/date";
 import { useEntryDetail } from "../lib/useEntryDetail";
 import {
   CalendarIcon,
@@ -64,8 +64,8 @@ export function EntryDetail({
         <div className="detail-meta">
           <span>
             <CalendarIcon />
-            {date.full}
-            {date.weekday ? ` · ${date.weekday}` : ""}
+            {formatDateRange(shown?.date, shown?.endDate ?? shown?.date)}
+            {date.weekday && (!shown?.endDate || shown.endDate === shown.date) ? ` · ${date.weekday}` : ""}
           </span>
           {place ? (
             <button className="detail-meta__link" onClick={onShowPlaceEntries} type="button">

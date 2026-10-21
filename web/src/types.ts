@@ -35,6 +35,7 @@ export interface Entry {
   id: string;
   title: string;
   date: string;
+  endDate?: string;
   placeId: string;
   tripId: string | null;
   body: string;

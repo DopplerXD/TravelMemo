@@ -127,6 +127,9 @@ export function TripDetail({
                         {place?.name ?? "地点已移除"}
                       </span>
                       <span className="trip-entry__title">{entry.title}</span>
+                      {entry.endDate && entry.endDate !== entry.date ? (
+                        <span className="trip-entry__meta"><CalendarIcon />{formatDateRange(entry.date, entry.endDate)}</span>
+                      ) : null}
                       {entry.photos.length > 0 ? (
                         <span className="trip-entry__meta">
                           <ImageIcon />

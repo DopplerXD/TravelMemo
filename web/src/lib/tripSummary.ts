@@ -35,6 +35,7 @@ export function buildTripSummaries(
       const ascending = [...dated].sort((first, second) =>
         first.date.localeCompare(second.date),
       );
+      const endDates = dated.map((entry) => entry.endDate ?? entry.date).sort();
       const cities = new Set<string>();
       const placeIds = new Set<string>();
       for (const entry of tripEntries) {
@@ -52,7 +53,7 @@ export function buildTripSummaries(
         trip,
         entries: tripEntries,
         startDate: ascending[0]?.date ?? null,
-        endDate: ascending[ascending.length - 1]?.date ?? null,
+        endDate: endDates.at(-1) ?? null,
         cover,
         cityCount: cities.size,
         placeCount: placeIds.size,

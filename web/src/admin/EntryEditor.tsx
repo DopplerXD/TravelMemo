@@ -28,6 +28,7 @@ interface EntryEditorProps {
 interface FieldErrors {
   title?: string;
   date?: string;
+  endDate?: string;
   placeId?: string;
 }
 
@@ -43,7 +44,8 @@ export function EntryEditor({
   const { entry, loading, error, retry } = useEntryDetail(entryId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState(todayIso());
+  const [date, setDate] = useState(todayIso);
+  const [endDate, setEndDate] = useState(date);
   const [placeId, setPlaceId] = useState("");
   const [tripId, setTripId] = useState("");
   const [body, setBody] = useState("");
@@ -61,6 +63,7 @@ export function EntryEditor({
     if (!entry) return;
     setTitle(entry.title);
     setDate(entry.date);
+    setEndDate(entry.endDate ?? entry.date);
     setPlaceId(entry.placeId);
     setTripId(entry.tripId ?? "");
     setBody(entry.body);
@@ -78,7 +81,9 @@ export function EntryEditor({
   const validate = (): boolean => {
     const next: FieldErrors = {};
     if (!title.trim()) next.title = "写下一个标题，方便以后回看";
-    if (!date || !parseDate(date).isValid) next.date = "请选择有效日期";
+    if (!date || !parseDate(date).isValid) next.date = "请选择有效开始日期";
+    if (!endDate || !parseDate(endDate).isValid) next.endDate = "请选择有效结束日期";
+    else if (date && endDate < date) next.endDate = "结束日期不能早于开始日期";
     if (!placeId) next.placeId = "请选择这条简记发生的地点";
     setFieldErrors(next);
     return Object.keys(next).length === 0;
@@ -144,6 +149,7 @@ export function EntryEditor({
     const payload: Omit<Entry, "id"> = {
       title: title.trim(),
       date,
+      endDate,
       placeId,
       tripId: tripId || null,
       body,
@@ -251,15 +257,30 @@ export function EntryEditor({
             />
           </Field>
 
-          <Field error={fieldErrors.date} htmlFor="entry-date" label="日期" required>
+          <Field error={fieldErrors.date} htmlFor="entry-date" label="开始日期" required>
             <input
               id="entry-date"
               onChange={(event) => {
-                setDate(event.target.value);
+                const nextDate = event.target.value;
+                if (endDate === date) setEndDate(nextDate);
+                setDate(nextDate);
                 if (fieldErrors.date) setFieldErrors((current) => ({ ...current, date: undefined }));
               }}
               type="date"
               value={date}
+            />
+          </Field>
+
+          <Field error={fieldErrors.endDate} htmlFor="entry-end-date" label="结束日期" required>
+            <input
+              id="entry-end-date"
+              min={date || undefined}
+              onChange={(event) => {
+                setEndDate(event.target.value);
+                if (fieldErrors.endDate) setFieldErrors((current) => ({ ...current, endDate: undefined }));
+              }}
+              type="date"
+              value={endDate}
             />
           </Field>
 

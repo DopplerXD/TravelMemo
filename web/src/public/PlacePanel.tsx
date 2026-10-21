@@ -1,5 +1,5 @@
 import type { EntrySummary, Place, Trip } from "../types";
-import { parseDate, pluralPhotos } from "../lib/date";
+import { formatDateRange, parseDate, pluralPhotos } from "../lib/date";
 import {
   CalendarIcon,
   CloseIcon,
@@ -90,6 +90,9 @@ export function PlacePanel({
                   <span className="place-record__body">
                     <span className="place-record__title">{entry.title}</span>
                     <span className="place-record__meta">
+                      {entry.endDate && entry.endDate !== entry.date ? (
+                        <span><CalendarIcon />{formatDateRange(entry.date, entry.endDate)}</span>
+                      ) : null}
                       {trip ? (
                         <span>
                           <RouteIcon />

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "../api";
 import type { AdminTab, Catalog, Place, Trip } from "../types";
-import { parseDate, pluralPhotos } from "../lib/date";
+import { formatDateRange, parseDate, pluralPhotos } from "../lib/date";
 import { navigate } from "../lib/router";
 import { Brand } from "../components/Brand";
 import { ThemeToggle } from "../components/ThemeToggle";
@@ -324,6 +324,9 @@ export function AdminShell({
                           <div className="admin-row__main">
                             <h3>{entry.title}</h3>
                             <div className="admin-row__meta">
+                              {entry.endDate && entry.endDate !== entry.date ? (
+                                <span><CalendarIcon />{formatDateRange(entry.date, entry.endDate)}</span>
+                              ) : null}
                               <span>
                                 <MapPinIcon />
                                 {place?.name ?? "地点已移除"}
